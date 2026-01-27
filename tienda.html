@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bant3D | Tienda</title>
+    <meta
+      name="description"
+      content="Tienda Bant3D: productos impresos listos para entrega, categorías y carrito de compra."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Unbounded:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="icon" href="assets/logo.png" />
+  </head>
+  <body>
+    <header class="site-header store-header">
+      <nav class="navbar">
+        <div class="brand">
+          <img src="assets/logo.png" alt="Bant3D logo" class="brand-logo" />
+          <span class="brand-name">Bant3D</span>
+        </div>
+        <div class="nav-links">
+          <a href="index.html">Inicio</a>
+          <a href="index.html#servicios">Servicios</a>
+          <a href="tienda.html">Tienda</a>
+          <a href="index.html#contacto">Contacto</a>
+        </div>
+        <a class="btn btn-primary" href="#checkout">Ir al pago</a>
+      </nav>
+
+      <section class="store-hero">
+        <div>
+          <p class="pill">Catálogo listo para entrega</p>
+          <h1>Explora la tienda Bant3D</h1>
+          <p class="hero-subtitle">
+            Filtra por categorías, añade al carrito y solicita tu envío.
+          </p>
+        </div>
+        <div class="store-hero-card">
+          <h3>Entrega rápida</h3>
+          <p>Pedidos listos en 24-72h según disponibilidad.</p>
+          <a class="btn btn-ghost" href="index.html#formulario">¿Algo personalizado?</a>
+        </div>
+      </section>
+    </header>
+
+    <main class="store-main">
+      <section class="store-layout">
+        <aside class="store-sidebar">
+          <div class="filter-card">
+            <h3>Filtros</h3>
+            <label>
+              Buscar
+              <input type="search" id="storeSearch" placeholder="Lámpara, soporte..." />
+            </label>
+            <label>
+              Precio
+              <select id="storePrice">
+                <option value="all">Todos</option>
+                <option value="0-25">$0 - $25</option>
+                <option value="25-50">$25 - $50</option>
+                <option value="50-100">$50 - $100</option>
+                <option value="100+">Más de $100</option>
+              </select>
+            </label>
+          </div>
+          <div class="filter-card">
+            <h3>Categorías</h3>
+            <div class="filter-tags" id="storeCategories">
+              <button class="tag is-active" data-category="all" type="button">Todos</button>
+              <button class="tag" data-category="decoracion" type="button">Decoración</button>
+              <button class="tag" data-category="hogar" type="button">Hogar</button>
+              <button class="tag" data-category="gaming" type="button">Gaming</button>
+              <button class="tag" data-category="oficina" type="button">Oficina</button>
+            </div>
+          </div>
+          <div class="filter-card">
+            <h3>Ayuda</h3>
+            <p>¿Necesitas otro color o tamaño? Escríbenos y lo adaptamos.</p>
+            <a class="btn btn-light" href="index.html#formulario">Solicitar ajuste</a>
+          </div>
+        </aside>
+
+        <div class="store-content">
+          <div class="store-products" id="storeProducts">
+            <article
+              class="store-product"
+              data-product
+              data-id="lampara-geo"
+              data-name="Lámpara geométrica"
+              data-price="45"
+              data-category="decoracion"
+              data-custom="true"
+            >
+              <div class="store-image">
+                <img class="store-thumb" data-store-image alt="Lámpara geométrica" />
+                <span>Lámpara</span>
+              </div>
+              <div class="store-info">
+                <h3>Lámpara geométrica</h3>
+                <p>PLA mate, iluminación suave.</p>
+                <span class="price">$45</span>
+                <button class="btn btn-light add-to-cart" type="button">Añadir</button>
+              </div>
+            </article>
+            <article
+              class="store-product"
+              data-product
+              data-id="soporte-audifonos"
+              data-name="Soporte para audífonos"
+              data-price="28"
+              data-category="oficina"
+              data-custom="false"
+            >
+              <div class="store-image">
+                <img class="store-thumb" data-store-image alt="Soporte para audífonos" />
+                <span>Soporte</span>
+              </div>
+              <div class="store-info">
+                <h3>Soporte para audífonos</h3>
+                <p>Base firme con acabado premium.</p>
+                <span class="price">$28</span>
+                <button class="btn btn-light add-to-cart" type="button">Añadir</button>
+              </div>
+            </article>
+            <article
+              class="store-product"
+              data-product
+              data-id="maceta-minimal"
+              data-name="Maceta minimal"
+              data-price="22"
+              data-category="hogar"
+              data-custom="true"
+            >
+              <div class="store-image">
+                <img class="store-thumb" data-store-image alt="Maceta minimal" />
+                <span>Maceta</span>
+              </div>
+              <div class="store-info">
+                <h3>Maceta minimal</h3>
+                <p>Ideal para escritorio, varios colores.</p>
+                <span class="price">$22</span>
+                <button class="btn btn-light add-to-cart" type="button">Añadir</button>
+              </div>
+            </article>
+            <article
+              class="store-product"
+              data-product
+              data-id="stand-control"
+              data-name="Stand para control"
+              data-price="32"
+              data-category="gaming"
+              data-custom="true"
+            >
+              <div class="store-image">
+                <img class="store-thumb" data-store-image alt="Stand para control" />
+                <span>Gaming</span>
+              </div>
+              <div class="store-info">
+                <h3>Stand para control</h3>
+                <p>Ordena tus mandos con estilo.</p>
+                <span class="price">$32</span>
+                <button class="btn btn-light add-to-cart" type="button">Añadir</button>
+              </div>
+            </article>
+            <article
+              class="store-product"
+              data-product
+              data-id="organizador-escritorio"
+              data-name="Organizador de escritorio"
+              data-price="38"
+              data-category="oficina"
+              data-custom="false"
+            >
+              <div class="store-image">
+                <img class="store-thumb" data-store-image alt="Organizador de escritorio" />
+                <span>Organizador</span>
+              </div>
+              <div class="store-info">
+                <h3>Organizador de escritorio</h3>
+                <p>Espacios para lápices y gadgets.</p>
+                <span class="price">$38</span>
+                <button class="btn btn-light add-to-cart" type="button">Añadir</button>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <aside class="cart-panel" id="checkout">
+          <div class="cart-card">
+            <h3>Tu carrito</h3>
+            <div class="cart-list" id="cartList">
+              <p class="muted">No hay productos todavía.</p>
+            </div>
+            <div class="cart-total">
+              <span>Total</span>
+              <strong id="cartTotal">$0</strong>
+            </div>
+            <button class="btn btn-primary" type="button">Continuar con el pago</button>
+            <p class="cart-note">
+              La pasarela de pago se integrará al finalizar la configuración.
+            </p>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <div class="modal" id="colorRequestModal" role="dialog" aria-modal="true">
+      <div class="modal-card">
+        <button class="modal-close" id="colorModalClose" type="button">✕</button>
+        <h3>Consultar color especial</h3>
+        <p class="muted">
+          Producto: <strong id="colorModalProduct">Producto</strong>
+        </p>
+        <form class="modal-form" id="colorRequestForm">
+          <label>
+            Nombre
+            <input type="text" name="name" placeholder="Tu nombre" required />
+          </label>
+          <label>
+            Teléfono
+            <input type="tel" name="phone" placeholder="+57 300 000 0000" required />
+          </label>
+          <label>
+            Email
+            <input type="email" name="email" placeholder="tucorreo@email.com" required />
+          </label>
+          <label>
+            Color a elegir
+            <div class="modal-color-row">
+              <input type="color" name="color" value="#7b5cff" />
+              <span class="color-preview" id="colorModalPreview" aria-hidden="true"></span>
+            </div>
+          </label>
+          <label>
+            Observaciones
+            <textarea
+              name="notes"
+              rows="3"
+              placeholder="Detalles sobre el color, acabado o referencia..."
+            ></textarea>
+          </label>
+          <button class="btn btn-primary" type="submit">Enviar consulta</button>
+          <p class="form-note" id="colorModalNote"></p>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal" id="imagePreviewModal" role="dialog" aria-modal="true">
+      <div class="modal-card modal-card-wide">
+        <button class="modal-close" id="imageModalClose" type="button">✕</button>
+        <img id="imageModalImg" alt="Vista previa del producto" />
+      </div>
+    </div>
+
+    <footer id="contacto" class="site-footer">
+      <div>
+        <div class="brand footer-brand">
+          <img src="assets/logo.png" alt="Bant3D logo" class="brand-logo" />
+          <span class="brand-name">Bant3D</span>
+        </div>
+        <p>Diseño, impresión y personalización 3D listos para vender.</p>
+      </div>
+      <div class="footer-links">
+        <div>
+          <h4>Contacto</h4>
+          <p>WhatsApp: +57 300 000 0000</p>
+          <p>Email: hola@bant3d.com</p>
+        </div>
+        <div>
+          <h4>Redes</h4>
+          <a href="#">Instagram</a>
+          <a href="#">TikTok</a>
+          <a href="#">Behance</a>
+        </div>
+        <div>
+          <h4>Ubicación</h4>
+          <p>Envíos a todo Colombia</p>
+          <p>Entrega local en Cali</p>
+        </div>
+      </div>
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>
