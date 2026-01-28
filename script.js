@@ -16,6 +16,9 @@ const colorModalPreview = document.getElementById("colorModalPreview");
 const imageModal = document.getElementById("imagePreviewModal");
 const imageModalImg = document.getElementById("imageModalImg");
 const imageModalClose = document.getElementById("imageModalClose");
+const imageModalPrev = document.getElementById("imageModalPrev");
+const imageModalNext = document.getElementById("imageModalNext");
+const imageModalCounter = document.getElementById("imageModalCounter");
 const AVAILABLE_COLORS = [
   "#ffffff",
   "#111827",
@@ -26,6 +29,18 @@ const AVAILABLE_COLORS = [
   "#ec4899",
   "#ffff26",
 ];
+const COLOR_NAME_MAP = {
+  blanco: "#ffffff",
+  negro: "#000000",
+  rojo: "#ef4444",
+  azul: "#3b82f6",
+  verde: "#22c55e",
+  amarillo: "#facc15",
+  naranja: "#f97316",
+  morado: "#8b5cf6",
+  rosa: "#f9a8d4",
+  gris: "#9ca3af",
+};
 const sliderDirectory = "assets/SliderIndex/";
 const fallbackImages = [
   "assets/SliderIndex/test1.png",
@@ -147,14 +162,24 @@ if (storeProducts) {
       total += item.price * item.qty;
       const row = document.createElement("div");
       row.className = "cart-item";
-      const colorLine = item.color ? `<div class="muted">Color: ${item.color}</div>` : "";
+      const colorLine = item.colors?.length
+        ? `<div class="cart-color-row">
+             ${item.colors
+               .map((color) => `<span class="cart-color-dot" style="background:${color}"></span>`)
+               .join("")}
+           </div>`
+        : "";
+      const optionLine = item.variant
+        ? `<div class="muted">Opcion: ${item.variant}</div>`
+        : "";
       row.innerHTML = `
         <div>
           <strong>${item.name}</strong>
           <div class="muted">x${item.qty}</div>
+          ${optionLine}
           ${colorLine}
         </div>
-        <button type="button" data-remove="${item.id}">Quitar</button>
+        <button type="button" data-remove="${item.key}">Quitar</button>
       `;
       cartList.appendChild(row);
     });
@@ -179,14 +204,103 @@ if (storeProducts) {
     });
   };
 
+  const loadGalleryImages = async (id) => {
+    const images = [];
+    const maxImages = 10;
+    for (let i = 1; i <= maxImages; i += 1) {
+      const src = `assets/StoreImages/${id}-${i}.png`;
+      const exists = await new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(true);
+        img.onerror = () => resolve(false);
+        img.src = src;
+      });
+      if (!exists) break;
+      images.push(src);
+    }
+    if (!images.length) {
+      images.push(`assets/StoreImages/${id}.png`);
+    }
+    return images;
+  };
+
+  const normalizeColorValue = (value) => {
+    if (!value) return "";
+    const trimmed = value.trim();
+    if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(trimmed)) {
+      return trimmed.toLowerCase();
+    }
+    const mapped = COLOR_NAME_MAP[trimmed.toLowerCase()];
+    return mapped || "";
+  };
+
+  const buildDefaultColors = (card, count) => {
+    const max = Math.max(1, Math.min(4, count));
+    const colors = [];
+    for (let i = 1; i <= max; i += 1) {
+      const rawValue = card.dataset[`color${i}`] || "";
+      const normalized = normalizeColorValue(rawValue);
+      colors.push(normalized || AVAILABLE_COLORS[(i - 1) % AVAILABLE_COLORS.length]);
+    }
+    return colors;
+  };
+
   const addToCart = (product) => {
-    const existing = cart.find((item) => item.id === product.id);
+    const existing = cart.find((item) => item.key === product.key);
     if (existing) {
       existing.qty += 1;
     } else {
       cart.push({ ...product, qty: 1 });
     }
     renderCart();
+  };
+
+  const renderDropdownOptions = (card) => {
+    const isDropdown = card.dataset.desplegable === "true";
+    if (!isDropdown) return;
+
+    const info = card.querySelector(".store-info");
+    const addButton = card.querySelector(".add-to-cart");
+    if (!info || !(addButton instanceof HTMLButtonElement)) return;
+
+    const rawOptions = card.dataset.contentDesplegable || "";
+    const options = rawOptions
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+    if (!options.length) return;
+
+    const wrapper = document.createElement("label");
+    wrapper.className = "option-select";
+    wrapper.innerHTML = `
+      Elige modelo
+      <select class="option-picker" aria-label="Selecciona una opcion">
+        <option value="">Selecciona una opcion</option>
+      </select>
+    `;
+
+    const select = wrapper.querySelector("select");
+    if (!(select instanceof HTMLSelectElement)) return;
+
+    options.forEach((option) => {
+      const opt = document.createElement("option");
+      opt.value = option;
+      opt.textContent = option;
+      select.appendChild(opt);
+    });
+
+    addButton.disabled = true;
+    addButton.classList.add("is-disabled");
+
+    select.addEventListener("change", () => {
+      const value = select.value;
+      card.dataset.selectedVariant = value;
+      const canEnable = Boolean(value);
+      addButton.disabled = !canEnable;
+      addButton.classList.toggle("is-disabled", !canEnable);
+    });
+
+    info.insertBefore(wrapper, addButton);
   };
 
   const renderColorOptions = (card) => {
@@ -197,11 +311,19 @@ if (storeProducts) {
     const addButton = card.querySelector(".add-to-cart");
     if (!info || !(addButton instanceof HTMLButtonElement)) return;
 
+    const count = Number(card.dataset.colorCount || 1);
+    const maxSelections = Math.max(1, Math.min(4, count));
+    const defaults = buildDefaultColors(card, maxSelections);
+    const selectedColors = defaults.filter(Boolean).slice(0, maxSelections);
+    card.dataset.selectedColors = JSON.stringify(selectedColors);
+
     const wrapper = document.createElement("label");
     wrapper.className = "color-select";
     wrapper.innerHTML = `
       Color disponible
-      <div class="color-swatches" role="listbox" aria-label="Selecciona un color"></div>
+      <div class="color-swatches" role="listbox" aria-label="Selecciona colores"></div>
+      <span class="color-count">Selecciona ${maxSelections}</span>
+      <div class="color-selection" aria-hidden="true"></div>
       <p class="color-help">
         Mas Colores a
         <button type="button" class="color-link" data-open-color-modal>
@@ -211,7 +333,29 @@ if (storeProducts) {
     `;
 
     const swatchContainer = wrapper.querySelector(".color-swatches");
-    if (!(swatchContainer instanceof HTMLElement)) return;
+    const selectionContainer = wrapper.querySelector(".color-selection");
+    if (!(swatchContainer instanceof HTMLElement) || !(selectionContainer instanceof HTMLElement)) {
+      return;
+    }
+
+    const updateButtonState = () => {
+      const selected = JSON.parse(card.dataset.selectedColors || "[]");
+      const ready = selected.length === maxSelections && selected.every(Boolean);
+      addButton.disabled = !ready;
+      addButton.classList.toggle("is-disabled", !ready);
+    };
+
+    const renderSelectionDots = () => {
+      const selected = JSON.parse(card.dataset.selectedColors || "[]");
+      selectionContainer.innerHTML = "";
+      selected.slice(0, maxSelections).forEach((color, index) => {
+        const dot = document.createElement("span");
+        dot.className = "color-dot";
+        dot.style.background = color || "transparent";
+        dot.dataset.index = index.toString();
+        selectionContainer.appendChild(dot);
+      });
+    };
 
     AVAILABLE_COLORS.forEach((hex) => {
       const button = document.createElement("button");
@@ -221,23 +365,38 @@ if (storeProducts) {
       button.setAttribute("role", "option");
       button.setAttribute("aria-label", `Color ${hex.toUpperCase()}`);
       button.dataset.color = hex;
+      if (selectedColors.includes(hex)) {
+        button.classList.add("is-selected");
+      }
       swatchContainer.appendChild(button);
     });
 
-    addButton.disabled = true;
-    addButton.classList.add("is-disabled");
+    renderSelectionDots();
+    updateButtonState();
 
     swatchContainer.addEventListener("click", (event) => {
       const target = event.target;
       if (!(target instanceof HTMLElement)) return;
       const value = target.dataset.color;
       if (!value) return;
-      card.dataset.selectedColor = value;
-      addButton.disabled = false;
-      addButton.classList.remove("is-disabled");
+
+      const current = JSON.parse(card.dataset.selectedColors || "[]");
+      let index = Number(card.dataset.selectedIndex || 0);
+      if (Number.isNaN(index)) index = 0;
+      const nextIndex = index % maxSelections;
+      current[nextIndex] = value;
+      card.dataset.selectedColors = JSON.stringify(current);
+      card.dataset.selectedIndex = ((nextIndex + 1) % maxSelections).toString();
+
       swatchContainer.querySelectorAll(".color-swatch").forEach((swatch) => {
-        swatch.classList.toggle("is-selected", swatch === target);
+        const swatchColor = swatch.dataset.color;
+        swatch.classList.toggle(
+          "is-selected",
+          swatchColor ? current.includes(swatchColor) : false
+        );
       });
+      renderSelectionDots();
+      updateButtonState();
     });
 
     wrapper.querySelector("[data-open-color-modal]")?.addEventListener("click", () => {
@@ -252,8 +411,8 @@ if (storeProducts) {
     info.insertBefore(wrapper, addButton);
   };
 
-  const removeFromCart = (id) => {
-    const index = cart.findIndex((item) => item.id === id);
+  const removeFromCart = (key) => {
+    const index = cart.findIndex((item) => item.key === key);
     if (index === -1) return;
     if (cart[index].qty > 1) {
       cart[index].qty -= 1;
@@ -295,25 +454,41 @@ if (storeProducts) {
     if (imageModal && (target.closest(".store-image") || target.classList.contains("store-thumb"))) {
       const card = target.closest("[data-product]");
       if (!card || !imageModalImg) return;
-      const image = card.querySelector("[data-store-image]");
-      if (!(image instanceof HTMLImageElement) || !image.src) return;
-      imageModalImg.src = image.src;
-      imageModal.classList.add("is-visible");
-      document.body.classList.add("modal-open");
+      const id = card.dataset.id;
+      if (!id) return;
+      loadGalleryImages(id).then((images) => {
+        imageModal.dataset.images = JSON.stringify(images);
+        imageModal.dataset.index = "0";
+        imageModalImg.src = images[0];
+        if (imageModalCounter) {
+          imageModalCounter.textContent = `1/${images.length}`;
+        }
+        if (imageModalPrev) imageModalPrev.disabled = images.length <= 1;
+        if (imageModalNext) imageModalNext.disabled = images.length <= 1;
+        imageModal.classList.add("is-visible");
+        document.body.classList.add("modal-open");
+      });
       return;
     }
     if (target.classList.contains("add-to-cart")) {
       const card = target.closest("[data-product]");
       if (!card) return;
-      const selectedColor = card.dataset.selectedColor || "";
-      if (card.dataset.custom === "true" && !selectedColor) {
+      const selectedColors = JSON.parse(card.dataset.selectedColors || "[]");
+      if (card.dataset.custom === "true" && selectedColors.some((color) => !color)) {
         return;
       }
+      const selectedVariant = card.dataset.selectedVariant || "";
+      if (card.dataset.desplegable === "true" && !selectedVariant) {
+        return;
+      }
+      const key = `${card.dataset.id || ""}::${selectedVariant}::${selectedColors.join("|")}`;
       addToCart({
+        key,
         id: card.dataset.id || "",
         name: card.dataset.name || "Producto",
         price: Number(card.dataset.price || 0),
-        color: selectedColor,
+        colors: selectedColors,
+        variant: selectedVariant,
       });
     }
   });
@@ -342,6 +517,7 @@ if (storeProducts) {
   storeSearch?.addEventListener("input", applyFilters);
   storePrice?.addEventListener("change", applyFilters);
 
+  products.forEach(renderDropdownOptions);
   products.forEach(renderColorOptions);
   applyFilters();
   renderCart();
@@ -394,6 +570,11 @@ if (imageModal) {
     if (imageModalImg) {
       imageModalImg.removeAttribute("src");
     }
+    imageModal.removeAttribute("data-images");
+    imageModal.removeAttribute("data-index");
+    if (imageModalCounter) {
+      imageModalCounter.textContent = "0/0";
+    }
   };
 
   imageModal.addEventListener("click", (event) => {
@@ -403,4 +584,27 @@ if (imageModal) {
   });
 
   imageModalClose?.addEventListener("click", closeImageModal);
+
+  const showImageAt = (nextIndex) => {
+    const raw = imageModal.dataset.images;
+    if (!raw || !imageModalImg) return;
+    const images = JSON.parse(raw);
+    if (!Array.isArray(images) || !images.length) return;
+    const safeIndex = ((nextIndex % images.length) + images.length) % images.length;
+    imageModal.dataset.index = safeIndex.toString();
+    imageModalImg.src = images[safeIndex];
+    if (imageModalCounter) {
+      imageModalCounter.textContent = `${safeIndex + 1}/${images.length}`;
+    }
+  };
+
+  imageModalPrev?.addEventListener("click", () => {
+    const current = Number(imageModal.dataset.index || "0");
+    showImageAt(current - 1);
+  });
+
+  imageModalNext?.addEventListener("click", () => {
+    const current = Number(imageModal.dataset.index || "0");
+    showImageAt(current + 1);
+  });
 }

@@ -62,10 +62,17 @@
               Precio
               <select id="storePrice">
                 <option value="all">Todos</option>
-                <option value="0-25">$0 - $25</option>
-                <option value="25-50">$25 - $50</option>
-                <option value="50-100">$50 - $100</option>
-                <option value="100+">Más de $100</option>
+                <option value="0-5">0 - 5€</option>
+                <option value="5-10">5 - 10€</option>
+                <option value="10-15">10 - 15€</option>
+                <option value="15-20">15 - 20€</option>
+                <option value="20-25">20 - 25€</option>
+                <option value="25-30">25 - 30€</option>
+                <option value="30-35">30 - 35€</option>
+                <option value="35-40">35 - 40€</option>
+                <option value="40-45">40 - 45€</option>
+                <option value="45-50">45 - 50€</option>
+                <option value="50+">Más de 50€</option>
               </select>
             </label>
           </div>
@@ -74,9 +81,9 @@
             <div class="filter-tags" id="storeCategories">
               <button class="tag is-active" data-category="all" type="button">Todos</button>
               <button class="tag" data-category="decoracion" type="button">Decoración</button>
-              <button class="tag" data-category="hogar" type="button">Hogar</button>
-              <button class="tag" data-category="gaming" type="button">Gaming</button>
-              <button class="tag" data-category="oficina" type="button">Oficina</button>
+              <button class="tag" data-category="utiles" type="button">Utiles</button>
+              <button class="tag" data-category="kawai" type="button">Kawai</button>
+              <button class="tag" data-category="hobbies" type="button">Hobbies</button>
             </div>
           </div>
           <div class="filter-card">
@@ -91,100 +98,110 @@
             <article
               class="store-product"
               data-product
-              data-id="lampara-geo"
-              data-name="Lámpara geométrica"
-              data-price="45"
-              data-category="decoracion"
-              data-custom="true"
-            >
-              <div class="store-image">
-                <img class="store-thumb" data-store-image alt="Lámpara geométrica" />
-                <span>Lámpara</span>
-              </div>
-              <div class="store-info">
-                <h3>Lámpara geométrica</h3>
-                <p>PLA mate, iluminación suave.</p>
-                <span class="price">$45</span>
-                <button class="btn btn-light add-to-cart" type="button">Añadir</button>
-              </div>
-            </article>
-            <article
-              class="store-product"
-              data-product
-              data-id="soporte-audifonos"
-              data-name="Soporte para audífonos"
-              data-price="28"
-              data-category="oficina"
+              data-id="Soporte-auriculares-Sakura"
+              data-name="Soporte para auriculares Sakura"
+              data-price="15"
+              data-category="kawai"
               data-custom="false"
             >
               <div class="store-image">
-                <img class="store-thumb" data-store-image alt="Soporte para audífonos" />
+                <img class="store-thumb" data-store-image alt="Soporte para auriculares Sakura" />
                 <span>Soporte</span>
               </div>
               <div class="store-info">
-                <h3>Soporte para audífonos</h3>
+                <h3>Soporte para auriculares Sakura</h3>
                 <p>Base firme con acabado premium.</p>
-                <span class="price">$28</span>
+                <span class="price">15€</span>
                 <button class="btn btn-light add-to-cart" type="button">Añadir</button>
               </div>
             </article>
             <article
               class="store-product"
               data-product
-              data-id="maceta-minimal"
-              data-name="Maceta minimal"
-              data-price="22"
-              data-category="hogar"
-              data-custom="true"
-            >
-              <div class="store-image">
-                <img class="store-thumb" data-store-image alt="Maceta minimal" />
-                <span>Maceta</span>
-              </div>
-              <div class="store-info">
-                <h3>Maceta minimal</h3>
-                <p>Ideal para escritorio, varios colores.</p>
-                <span class="price">$22</span>
-                <button class="btn btn-light add-to-cart" type="button">Añadir</button>
-              </div>
-            </article>
-            <article
-              class="store-product"
-              data-product
-              data-id="stand-control"
-              data-name="Stand para control"
-              data-price="32"
-              data-category="gaming"
-              data-custom="true"
-            >
-              <div class="store-image">
-                <img class="store-thumb" data-store-image alt="Stand para control" />
-                <span>Gaming</span>
-              </div>
-              <div class="store-info">
-                <h3>Stand para control</h3>
-                <p>Ordena tus mandos con estilo.</p>
-                <span class="price">$32</span>
-                <button class="btn btn-light add-to-cart" type="button">Añadir</button>
-              </div>
-            </article>
-            <article
-              class="store-product"
-              data-product
-              data-id="organizador-escritorio"
-              data-name="Organizador de escritorio"
-              data-price="38"
-              data-category="oficina"
+              data-id="Soporte-gafas"
+              data-name="Soporte para gafas"
+              data-price="7.5"
+              data-category="kawai"
               data-custom="false"
             >
               <div class="store-image">
-                <img class="store-thumb" data-store-image alt="Organizador de escritorio" />
-                <span>Organizador</span>
+                <img class="store-thumb" data-store-image alt="Soporte para gafas" />
+                <span>Soporte</span>
               </div>
               <div class="store-info">
-                <h3>Organizador de escritorio</h3>
-                <p>Espacios para lápices y gadgets.</p>
-                <span class="price">$38</span>
+                <h3>Soporte para gafas</h3>
+                <p>Base firme con acabado premium.</p>
+                <span class="price">7.5€</span>
+                <button class="btn btn-light add-to-cart" type="button">Añadir</button>
+              </div>
+            </article>
+            <article
+              class="store-product"
+              data-product
+              data-id="Cortadores-de-galletas"
+              data-name="Cortadores de galletas"
+              data-price="2"
+              data-category="hobbies"
+              data-custom="true"
+              data-desplegable="true"
+              data-content-desplegable="caballo, gato, perro, conejo"
+              data-color-count="2"
+              data-color1="rojo"
+              data-color2="blanco"
+            >
+              <div class="store-image">
+                <img class="store-thumb" data-store-image alt="Cortadores de galletas" />
+                <span>Cortadores</span>
+              </div>
+              <div class="store-info">
+                <h3>Cortadores de galletas</h3>
+                <p>Ideal para cortar galletas.</p>
+                <span class="price">2€</span>
+                <button class="btn btn-light add-to-cart" type="button">Añadir</button>
+              </div>
+            </article>
+            <article
+              class="store-product"
+              data-product
+              data-id="Portabolsas"
+              data-name="Portabolsas"
+              data-price="3.25"
+              data-category="utiles"
+              data-custom="true"
+              data-color-count="1"
+              data-color1="blanco"
+            >
+              <div class="store-image">
+                <img class="store-thumb" data-store-image alt="Stand para control" />
+                <span>Portabolsas</span>
+              </div>
+              <div class="store-info">
+                <h3>Portabolsas</h3>
+                <p>Ideal para llevar tus bolsas de la compra.</p>
+                <span class="price">3.25€</span>
+                <button class="btn btn-light add-to-cart" type="button">Añadir</button>
+              </div>
+            </article>
+            <article
+              class="store-product"
+              data-product
+              data-id="Bandejas-DP"
+              data-name="Bandeja Diamond Painting"
+              data-price="5.25"
+              data-category="hobbies"
+              data-custom="true"
+              data-color-count="2"
+              data-color1="rosa"
+              data-color2="blanco"
+            >
+              <div class="store-image">
+                <img class="store-thumb" data-store-image alt="Bandeja Diamond Painting" />
+                <span>Bandeja</span>
+              </div>
+              <div class="store-info">
+                <h3>Bandeja Diamond Painting</h3>
+                <p>Ideal para pintar con diamantes.</p>
+                <span class="price">5.25€</span>
                 <button class="btn btn-light add-to-cart" type="button">Añadir</button>
               </div>
             </article>
@@ -254,7 +271,10 @@
     <div class="modal" id="imagePreviewModal" role="dialog" aria-modal="true">
       <div class="modal-card modal-card-wide">
         <button class="modal-close" id="imageModalClose" type="button">✕</button>
+        <button class="modal-arrow modal-arrow-left" id="imageModalPrev" type="button">‹</button>
         <img id="imageModalImg" alt="Vista previa del producto" />
+        <button class="modal-arrow modal-arrow-right" id="imageModalNext" type="button">›</button>
+        <div class="modal-counter" id="imageModalCounter">1/1</div>
       </div>
     </div>
 
