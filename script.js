@@ -11,6 +11,7 @@ const colorModal = document.getElementById("colorRequestModal");
 const colorModalForm = document.getElementById("colorRequestForm");
 const colorModalClose = document.getElementById("colorModalClose");
 const colorModalProduct = document.getElementById("colorModalProduct");
+const colorModalProductInput = document.getElementById("colorModalProductInput");
 const colorModalNote = document.getElementById("colorModalNote");
 const colorModalPreview = document.getElementById("colorModalPreview");
 const imageModal = document.getElementById("imagePreviewModal");
@@ -29,6 +30,8 @@ const AVAILABLE_COLORS = [
   "#ec4899",
   "#ffff26",
 ];
+const REQUEST_ENDPOINT = "/api/request";
+const COLOR_ENDPOINT = "/api/color-request";
 const COLOR_NAME_MAP = {
   blanco: "#ffffff",
   negro: "#000000",
@@ -126,12 +129,60 @@ const loadSliderImages = async () => {
   startSlider();
 };
 
+const sendFormToApi = async (formElement, noteElement, successMessage) => {
+  try {
+    const fileInput = formElement.querySelector('input[type="file"]');
+    if (fileInput instanceof HTMLInputElement && fileInput.files?.length) {
+      const file = fileInput.files[0];
+      if (file.size > 10 * 1024 * 1024) {
+        if (noteElement) {
+          noteElement.textContent = "La imagen supera el tamaño máximo de 10MB.";
+        }
+        return false;
+      }
+    }
+
+    const response = await fetch(formElement.dataset.endpoint || REQUEST_ENDPOINT, {
+      method: "POST",
+      body: new FormData(formElement),
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => null);
+      const message =
+        data?.error || "No se pudo enviar. Intenta nuevamente en unos minutos.";
+      if (noteElement) {
+        noteElement.textContent = message;
+      }
+      return false;
+    }
+
+    if (noteElement) {
+      noteElement.textContent = successMessage;
+    }
+    formElement.reset();
+    return true;
+  } catch (error) {
+    if (noteElement) {
+      const message =
+        typeof error?.message === "string" && error.message.length
+          ? `No se pudo enviar: ${error.message}`
+          : "No se pudo enviar. Revisa tu conexión e intenta nuevamente.";
+      noteElement.textContent = message;
+    }
+    return false;
+  }
+};
+
 if (form) {
+  form.dataset.endpoint = REQUEST_ENDPOINT;
   form.addEventListener("submit", (event) => {
     event.preventDefault();
-    formNote.textContent =
-      "¡Gracias! Tu solicitud fue enviada. Te responderemos muy pronto.";
-    form.reset();
+    sendFormToApi(
+      form,
+      formNote,
+      "¡Gracias! Tu solicitud fue enviada. Te responderemos muy pronto."
+    );
   });
 }
 
@@ -403,6 +454,9 @@ if (storeProducts) {
       if (!colorModal) return;
       const name = card.dataset.name || "Producto";
       colorModalProduct.textContent = name;
+      if (colorModalProductInput) {
+        colorModalProductInput.value = name;
+      }
       colorModal.dataset.productId = card.dataset.id || "";
       colorModal.classList.add("is-visible");
       document.body.classList.add("modal-open");
@@ -545,13 +599,21 @@ if (colorModal) {
 
   colorModalClose?.addEventListener("click", closeModal);
 
+  if (colorModalForm) {
+    colorModalForm.dataset.endpoint = COLOR_ENDPOINT;
+  }
+
   colorModalForm?.addEventListener("submit", (event) => {
     event.preventDefault();
-    if (colorModalNote) {
-      colorModalNote.textContent =
-        "¡Gracias! Te contactaremos para confirmar el color.";
-    }
-    setTimeout(closeModal, 1500);
+    sendFormToApi(
+      colorModalForm,
+      colorModalNote,
+      "¡Gracias! Te contactaremos para confirmar el color."
+    ).then((success) => {
+      if (success) {
+        setTimeout(closeModal, 1500);
+      }
+    });
   });
 
   colorModalForm?.addEventListener("input", (event) => {

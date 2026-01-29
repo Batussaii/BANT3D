@@ -237,7 +237,7 @@
           <h2>Solicita tu modelo personalizado</h2>
           <p>Déjanos tu información y adjunta una imagen de referencia.</p>
         </div>
-        <form class="request-form" id="customRequestForm">
+        <form class="request-form" id="customRequestForm" enctype="multipart/form-data">
           <div class="field-grid">
             <label>
               Nombre completo
@@ -271,7 +271,7 @@
           </label>
           <label class="upload">
             Adjunta una imagen
-            <input type="file" name="reference" accept="image/*" />
+            <input type="file" name="attachment" accept="image/*" />
             <span>PNG, JPG o WEBP (máx. 10MB)</span>
           </label>
           <button class="btn btn-primary" type="submit">Enviar solicitud</button>
