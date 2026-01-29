@@ -778,6 +778,47 @@ a {
   color: var(--muted);
 }
 
+.alert {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  font-size: 0.9rem;
+  background: transparent;
+  color: var(--muted);
+}
+
+.alert:empty {
+  display: none;
+}
+
+.alert-success {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.35);
+  color: #bbf7d0;
+}
+
+.alert-info {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #bfdbfe;
+}
+
+.checkout-summary {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #0b1126;
+  border: 1px solid rgba(123, 92, 255, 0.15);
+}
+
+.checkout-summary div {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.95rem;
+}
+
 .muted {
   color: var(--muted);
 }

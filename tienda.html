@@ -216,16 +216,44 @@
             </div>
             <div class="cart-total">
               <span>Total</span>
-              <strong id="cartTotal">$0</strong>
+              <strong id="cartTotal">€0.00</strong>
             </div>
-            <button class="btn btn-primary" type="button">Continuar con el pago</button>
+            <button class="btn btn-primary" id="checkoutButton" type="button">
+              Continuar con el pago
+            </button>
             <p class="cart-note">
-              La pasarela de pago se integrará al finalizar la configuración.
+              Selecciona tu pasarela de pago para completar el pedido.
             </p>
+            <div class="alert" id="paymentAlert" role="status" aria-live="polite"></div>
           </div>
         </aside>
       </section>
     </main>
+
+    <div class="modal" id="checkoutModal" role="dialog" aria-modal="true">
+      <div class="modal-card">
+        <button class="modal-close" id="checkoutModalClose" type="button">✕</button>
+        <h3>Finalizar compra</h3>
+        <p class="muted">Elige tu método de pago para completar el pedido.</p>
+        <div class="checkout-summary">
+          <div>
+            <span>Productos</span>
+            <strong id="checkoutItemsCount">0</strong>
+          </div>
+          <div>
+            <span>Total</span>
+            <strong id="checkoutTotal">€0</strong>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="payWithCard" type="button">
+          Pagar con tarjeta
+        </button>
+        <button class="btn btn-light" id="payWithPaypal" type="button">
+          Pagar con PayPal
+        </button>
+        <p class="form-note" id="checkoutNote"></p>
+      </div>
+    </div>
 
     <div class="modal" id="colorRequestModal" role="dialog" aria-modal="true">
       <div class="modal-card">

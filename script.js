@@ -7,6 +7,15 @@ const storeSearch = document.getElementById("storeSearch");
 const storePrice = document.getElementById("storePrice");
 const cartList = document.getElementById("cartList");
 const cartTotal = document.getElementById("cartTotal");
+const paymentAlert = document.getElementById("paymentAlert");
+const checkoutButton = document.getElementById("checkoutButton");
+const checkoutModal = document.getElementById("checkoutModal");
+const checkoutModalClose = document.getElementById("checkoutModalClose");
+const checkoutItemsCount = document.getElementById("checkoutItemsCount");
+const checkoutTotal = document.getElementById("checkoutTotal");
+const checkoutNote = document.getElementById("checkoutNote");
+const payWithCard = document.getElementById("payWithCard");
+const payWithPaypal = document.getElementById("payWithPaypal");
 const colorModal = document.getElementById("colorRequestModal");
 const colorModalForm = document.getElementById("colorRequestForm");
 const colorModalClose = document.getElementById("colorModalClose");
@@ -32,6 +41,8 @@ const AVAILABLE_COLORS = [
 ];
 const REQUEST_ENDPOINT = "/api/request";
 const COLOR_ENDPOINT = "/api/color-request";
+const STRIPE_ENDPOINT = "/api/checkout/stripe";
+const PAYPAL_ENDPOINT = "/api/checkout/paypal";
 const COLOR_NAME_MAP = {
   blanco: "#ffffff",
   negro: "#000000",
@@ -55,6 +66,17 @@ const fallbackImages = [
 
 const SLIDE_INTERVAL_MS = 7000;
 let sliderTimer = null;
+
+const showPaymentAlert = (type, message) => {
+  if (!paymentAlert) return;
+  if (!message) {
+    paymentAlert.textContent = "";
+    paymentAlert.className = "alert";
+    return;
+  }
+  paymentAlert.textContent = message;
+  paymentAlert.className = `alert alert-${type}`;
+};
 
 const startSlider = () => {
   if (!slider) return;
@@ -193,7 +215,15 @@ if (storeProducts) {
   const cart = [];
   let activeCategory = "all";
 
-  const formatCurrency = (value) => `$${value.toFixed(0)}`;
+  const formatCurrency = (value) => `€${value.toFixed(2)}`;
+
+  const updateCheckoutSummary = () => {
+    if (!checkoutItemsCount || !checkoutTotal) return;
+    const itemCount = cart.reduce((sum, item) => sum + item.qty, 0);
+    const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+    checkoutItemsCount.textContent = itemCount.toString();
+    checkoutTotal.textContent = `€${total.toFixed(2)}`;
+  };
 
   const renderCart = () => {
     if (!cartList || !cartTotal) return;
@@ -204,7 +234,7 @@ if (storeProducts) {
       empty.className = "muted";
       empty.textContent = "No hay productos todavía.";
       cartList.appendChild(empty);
-      cartTotal.textContent = "$0";
+      cartTotal.textContent = "€0.00";
       return;
     }
 
@@ -236,6 +266,11 @@ if (storeProducts) {
     });
 
     cartTotal.textContent = formatCurrency(total);
+    if (checkoutButton instanceof HTMLButtonElement) {
+      checkoutButton.disabled = !cart.length;
+      checkoutButton.classList.toggle("is-disabled", !cart.length);
+    }
+    updateCheckoutSummary();
   };
 
   const setProductImages = () => {
@@ -576,7 +611,116 @@ if (storeProducts) {
   applyFilters();
   renderCart();
   setProductImages();
+  if (checkoutButton && checkoutModal) {
+    const closeCheckoutModal = () => {
+      checkoutModal.classList.remove("is-visible");
+      document.body.classList.remove("modal-open");
+      if (checkoutNote) checkoutNote.textContent = "";
+    };
+
+    const formatColorLabel = (colors) =>
+      colors?.length ? `Colores: ${colors.join(", ")}` : "";
+
+    const buildCheckoutPayload = () => ({
+      items: cart.map((item) => ({
+        name: item.variant
+          ? `${item.name} (${item.variant})`
+          : item.name,
+        description: formatColorLabel(item.colors),
+        price: item.price,
+        qty: item.qty,
+      })),
+      currency: "EUR",
+      successUrl: `${window.location.origin}/tienda.html?payment=success`,
+      cancelUrl: `${window.location.origin}/tienda.html?payment=cancel`,
+    });
+
+    const setCheckoutLoading = (isLoading, label) => {
+      if (payWithCard instanceof HTMLButtonElement) {
+        payWithCard.disabled = isLoading;
+        payWithCard.classList.toggle("is-disabled", isLoading);
+        if (label) payWithCard.textContent = label;
+        if (!isLoading) payWithCard.textContent = "Pagar con tarjeta";
+      }
+      if (payWithPaypal instanceof HTMLButtonElement) {
+        payWithPaypal.disabled = isLoading;
+        payWithPaypal.classList.toggle("is-disabled", isLoading);
+        if (label) payWithPaypal.textContent = label;
+        if (!isLoading) payWithPaypal.textContent = "Pagar con PayPal";
+      }
+    };
+
+    const startCheckout = async (endpoint) => {
+      const payload = buildCheckoutPayload();
+      if (!payload.items.length) {
+        if (checkoutNote) checkoutNote.textContent = "Añade productos antes de continuar.";
+        return;
+      }
+
+      setCheckoutLoading(true, "Preparando pago...");
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await response.json().catch(() => null);
+        if (!response.ok || !data?.url) {
+          const message = data?.error || "No se pudo iniciar el pago. Intenta de nuevo.";
+          if (checkoutNote) checkoutNote.textContent = message;
+          setCheckoutLoading(false);
+          return;
+        }
+        window.location.href = data.url;
+      } catch (error) {
+        if (checkoutNote) {
+          checkoutNote.textContent =
+            typeof error?.message === "string"
+              ? `No se pudo iniciar el pago: ${error.message}`
+              : "No se pudo iniciar el pago. Revisa tu conexión.";
+        }
+        setCheckoutLoading(false);
+      }
+    };
+
+    checkoutButton.addEventListener("click", () => {
+      if (checkoutButton instanceof HTMLButtonElement && checkoutButton.disabled) return;
+      updateCheckoutSummary();
+      checkoutModal.classList.add("is-visible");
+      document.body.classList.add("modal-open");
+    });
+
+    checkoutModal.addEventListener("click", (event) => {
+      if (event.target === checkoutModal) {
+        closeCheckoutModal();
+      }
+    });
+
+    checkoutModalClose?.addEventListener("click", closeCheckoutModal);
+    payWithCard?.addEventListener("click", () => startCheckout(STRIPE_ENDPOINT));
+    payWithPaypal?.addEventListener("click", () => startCheckout(PAYPAL_ENDPOINT));
+  }
 }
+
+const handlePaymentReturn = async () => {
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get("payment");
+  if (!status) return;
+
+  if (status === "success") {
+    showPaymentAlert(
+      "success",
+      "Pago confirmado. Tu pedido se está procesando y te contactaremos pronto."
+    );
+    return;
+  }
+
+  if (status === "cancel") {
+    showPaymentAlert("info", "El pago fue cancelado. Puedes intentarlo de nuevo.");
+  }
+};
+
+handlePaymentReturn();
 
 if (colorModal) {
   const closeModal = () => {
