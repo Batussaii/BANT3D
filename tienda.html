@@ -40,6 +40,7 @@
           <p class="hero-subtitle">
             Filtra por categorías, añade al carrito y solicita tu envío.
           </p>
+          <p class="hero-note">Envío gratis desde 30€ en España (península).</p>
         </div>
         <div class="store-hero-card">
           <h3>Entrega rápida</h3>
@@ -214,6 +215,16 @@
             <div class="cart-list" id="cartList">
               <p class="muted">No hay productos todavía.</p>
             </div>
+            <div class="cart-breakdown">
+              <div>
+                <span>Subtotal</span>
+                <strong id="cartSubtotal">€0.00</strong>
+              </div>
+              <div>
+                <span>Envío</span>
+                <strong id="cartShipping">€0.00</strong>
+              </div>
+            </div>
             <div class="cart-total">
               <span>Total</span>
               <strong id="cartTotal">€0.00</strong>
@@ -224,6 +235,7 @@
             <p class="cart-note">
               Selecciona tu pasarela de pago para completar el pedido.
             </p>
+            <p class="cart-note" id="cartShippingNote"></p>
             <div class="alert" id="paymentAlert" role="status" aria-live="polite"></div>
           </div>
         </aside>
@@ -249,9 +261,20 @@
             <input type="tel" id="checkoutPhone" name="phone" required />
           </label>
           <label>
+            País
+            <select id="checkoutCountry" name="country" required>
+              <option value="ES">España (península)</option>
+              <option value="AR">Argentina</option>
+              <option value="INT">Otro país</option>
+            </select>
+          </label>
+          <label>
             Observaciones del envío
             <textarea id="checkoutNotes" name="notes" rows="3"></textarea>
           </label>
+          <p class="muted" id="internationalNote">
+            Producción bajo pedido (5-7 días). Envío internacional se cotiza.
+          </p>
         </form>
         <div class="checkout-summary">
           <div>
@@ -261,6 +284,10 @@
           <div>
             <span>Total</span>
             <strong id="checkoutTotal">€0</strong>
+          </div>
+          <div>
+            <span>Envío</span>
+            <strong id="checkoutShipping">€0.00</strong>
           </div>
         </div>
         <button class="btn btn-primary" id="payWithCard" type="button">

@@ -778,6 +778,12 @@ a {
   color: var(--muted);
 }
 
+.hero-note {
+  margin-top: 12px;
+  font-weight: 600;
+  color: #c7d2fe;
+}
+
 .alert {
   margin-top: 12px;
   padding: 10px 12px;
@@ -827,6 +833,31 @@ a {
 .checkout-form input,
 .checkout-form textarea {
   width: 100%;
+}
+
+#internationalNote {
+  display: none;
+}
+
+#internationalNote.is-visible {
+  display: block;
+}
+
+.shipping-tag {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.cart-breakdown {
+  display: grid;
+  gap: 6px;
+  font-size: 0.95rem;
+}
+
+.cart-breakdown div {
+  display: flex;
+  justify-content: space-between;
 }
 
 .muted {

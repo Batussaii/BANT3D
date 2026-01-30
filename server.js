@@ -90,6 +90,7 @@ const normalizeCustomer = (customer = {}) => ({
   address: typeof customer?.address === "string" ? customer.address.trim() : "",
   phone: typeof customer?.phone === "string" ? customer.phone.trim() : "",
   notes: typeof customer?.notes === "string" ? customer.notes.trim() : "",
+  country: typeof customer?.country === "string" ? customer.country.trim() : "",
 });
 
 const isCustomerValid = (customer) =>
@@ -102,6 +103,7 @@ const sendOrderEmail = async ({
   total,
   items,
   customer,
+  shipping,
 }) => {
   if (!items.length) return;
   if (providerId && processedPayments.has(providerId)) return;
@@ -121,13 +123,19 @@ const sendOrderEmail = async ({
     .join("\n");
 
   const safeCustomer = normalizeCustomer(customer);
+  const shippingLabel =
+    shipping?.cost === null
+      ? "Se cotiza"
+      : formatMoney(shipping?.cost || 0, currency);
   const customerText = safeCustomer?.name
     ? `
 Cliente:
 Nombre: ${safeCustomer.name || "-"}
 Direccion: ${safeCustomer.address || "-"}
 Movil: ${safeCustomer.phone || "-"}
+Pais: ${safeCustomer.country || "-"}
 Observaciones: ${safeCustomer.notes || "-"}
+Envio: ${shippingLabel}
       `.trim()
     : "";
   const customerHtml = safeCustomer?.name
@@ -136,7 +144,9 @@ Observaciones: ${safeCustomer.notes || "-"}
       <p><strong>Nombre:</strong> ${safeCustomer.name || "-"}</p>
       <p><strong>Direccion:</strong> ${safeCustomer.address || "-"}</p>
       <p><strong>Movil:</strong> ${safeCustomer.phone || "-"}</p>
+      <p><strong>Pais:</strong> ${safeCustomer.country || "-"}</p>
       <p><strong>Observaciones:</strong> ${safeCustomer.notes || "-"}</p>
+      <p><strong>Envio:</strong> ${shippingLabel}</p>
     `
     : "";
 
@@ -294,7 +304,16 @@ app.post("/webhooks/stripe", express.raw({ type: "application/json" }), async (r
         address: session.metadata?.customer_address,
         phone: session.metadata?.customer_phone,
         notes: session.metadata?.customer_notes,
+        country: session.metadata?.customer_country,
       });
+      const shipping = {
+        cost:
+          session.metadata?.shipping_cost &&
+          session.metadata.shipping_cost !== "quote"
+            ? Number(session.metadata.shipping_cost)
+            : null,
+        label: session.metadata?.shipping_label || "",
+      };
       const lineItems = await stripe.checkout.sessions.listLineItems(sessionId, {
         limit: 100,
       });
@@ -311,6 +330,7 @@ app.post("/webhooks/stripe", express.raw({ type: "application/json" }), async (r
         total: (session.amount_total || 0) / 100,
         items,
         customer,
+        shipping,
       });
     }
 
@@ -422,6 +442,7 @@ app.post("/api/checkout/stripe", async (req, res) => {
     }
     const items = normalizeItems(req.body?.items);
     const customer = normalizeCustomer(req.body?.customer);
+    const shipping = req.body?.shipping || {};
     if (!items.length) {
       res.status(400).json({ error: "No hay productos para cobrar." });
       return;
@@ -444,6 +465,10 @@ app.post("/api/checkout/stripe", async (req, res) => {
         customer_address: customer.address,
         customer_phone: customer.phone,
         customer_notes: customer.notes || "",
+        customer_country: customer.country || "",
+        shipping_cost:
+          typeof shipping?.cost === "number" ? shipping.cost.toString() : "quote",
+        shipping_label: typeof shipping?.label === "string" ? shipping.label : "",
       },
       line_items: items.map((item) => ({
         price_data: {
@@ -537,7 +562,7 @@ app.post("/api/checkout/paypal", async (req, res) => {
 
     const orderId = response?.result?.id;
     if (orderId) {
-      pendingOrders.set(orderId, customer);
+      pendingOrders.set(orderId, { customer, shipping });
     }
 
     res.json({ url: approve.href, orderId });
@@ -587,8 +612,8 @@ app.post("/webhooks/paypal", async (req, res) => {
           qty: Number(item.quantity || 1),
         }))
       ) || [];
-    const customer = pendingOrders.get(orderId);
-    if (customer) {
+    const pending = pendingOrders.get(orderId);
+    if (pending) {
       pendingOrders.delete(orderId);
     }
 
@@ -598,7 +623,8 @@ app.post("/webhooks/paypal", async (req, res) => {
       currency,
       total,
       items,
-      customer,
+      customer: pending?.customer,
+      shipping: pending?.shipping,
     });
 
     res.json({ received: true });

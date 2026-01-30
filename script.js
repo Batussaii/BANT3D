@@ -7,6 +7,9 @@ const storeSearch = document.getElementById("storeSearch");
 const storePrice = document.getElementById("storePrice");
 const cartList = document.getElementById("cartList");
 const cartTotal = document.getElementById("cartTotal");
+const cartSubtotal = document.getElementById("cartSubtotal");
+const cartShipping = document.getElementById("cartShipping");
+const cartShippingNote = document.getElementById("cartShippingNote");
 const paymentAlert = document.getElementById("paymentAlert");
 const checkoutButton = document.getElementById("checkoutButton");
 const checkoutModal = document.getElementById("checkoutModal");
@@ -16,6 +19,9 @@ const checkoutName = document.getElementById("checkoutName");
 const checkoutAddress = document.getElementById("checkoutAddress");
 const checkoutPhone = document.getElementById("checkoutPhone");
 const checkoutNotes = document.getElementById("checkoutNotes");
+const checkoutCountry = document.getElementById("checkoutCountry");
+const checkoutShipping = document.getElementById("checkoutShipping");
+const internationalNote = document.getElementById("internationalNote");
 const checkoutItemsCount = document.getElementById("checkoutItemsCount");
 const checkoutTotal = document.getElementById("checkoutTotal");
 const checkoutNote = document.getElementById("checkoutNote");
@@ -71,6 +77,24 @@ const fallbackImages = [
 
 const SLIDE_INTERVAL_MS = 7000;
 let sliderTimer = null;
+
+const FREE_SHIPPING_THRESHOLD = 30;
+const INTERNATIONAL_MIN_ORDER = 50;
+
+const formatCurrency = (value) => `€${value.toFixed(2)}`;
+
+const calculateShipping = (subtotal, country) => {
+  if (country && country !== "ES") {
+    return { cost: null, label: "Se cotiza" };
+  }
+  if (subtotal >= FREE_SHIPPING_THRESHOLD) {
+    return { cost: 0, label: "Gratis" };
+  }
+  if (subtotal >= 10) {
+    return { cost: 2.95, label: "2,95€" };
+  }
+  return { cost: 4.95, label: "4,95€" };
+};
 
 const showPaymentAlert = (type, message) => {
   if (!paymentAlert) return;
@@ -220,14 +244,19 @@ if (storeProducts) {
   const cart = [];
   let activeCategory = "all";
 
-  const formatCurrency = (value) => `€${value.toFixed(2)}`;
-
   const updateCheckoutSummary = () => {
     if (!checkoutItemsCount || !checkoutTotal) return;
     const itemCount = cart.reduce((sum, item) => sum + item.qty, 0);
-    const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+    const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+    const country = checkoutCountry?.value || "ES";
+    const shipping = calculateShipping(subtotal, country);
+    const total = shipping.cost === null ? subtotal : subtotal + shipping.cost;
     checkoutItemsCount.textContent = itemCount.toString();
-    checkoutTotal.textContent = `€${total.toFixed(2)}`;
+    checkoutTotal.textContent = formatCurrency(total);
+    if (checkoutShipping) {
+      checkoutShipping.textContent =
+        shipping.cost === null ? shipping.label : formatCurrency(shipping.cost);
+    }
   };
 
   const renderCart = () => {
@@ -239,13 +268,15 @@ if (storeProducts) {
       empty.className = "muted";
       empty.textContent = "No hay productos todavía.";
       cartList.appendChild(empty);
+      if (cartSubtotal) cartSubtotal.textContent = "€0.00";
+      if (cartShipping) cartShipping.textContent = "€0.00";
       cartTotal.textContent = "€0.00";
       return;
     }
 
-    let total = 0;
+    let subtotal = 0;
     cart.forEach((item) => {
-      total += item.price * item.qty;
+      subtotal += item.price * item.qty;
       const row = document.createElement("div");
       row.className = "cart-item";
       const colorLine = item.colors?.length
@@ -270,10 +301,35 @@ if (storeProducts) {
       cartList.appendChild(row);
     });
 
+    const country = checkoutCountry?.value || "ES";
+    const shipping = calculateShipping(subtotal, country);
+    const total = shipping.cost === null ? subtotal : subtotal + shipping.cost;
+    if (cartSubtotal) cartSubtotal.textContent = formatCurrency(subtotal);
+    if (cartShipping) {
+      cartShipping.textContent =
+        shipping.cost === null ? shipping.label : formatCurrency(shipping.cost);
+    }
     cartTotal.textContent = formatCurrency(total);
     if (checkoutButton instanceof HTMLButtonElement) {
       checkoutButton.disabled = !cart.length;
       checkoutButton.classList.toggle("is-disabled", !cart.length);
+    }
+    if (cartShippingNote) {
+      if (country !== "ES") {
+        cartShippingNote.textContent =
+          subtotal >= INTERNATIONAL_MIN_ORDER
+            ? "Envío internacional se cotiza. Producción bajo pedido (5-7 días)."
+            : `Solo pedidos internacionales desde ${formatCurrency(
+                INTERNATIONAL_MIN_ORDER
+              )}.`;
+      } else if (subtotal >= FREE_SHIPPING_THRESHOLD) {
+        cartShippingNote.textContent = "¡Tienes envío gratis!";
+      } else {
+        const remaining = FREE_SHIPPING_THRESHOLD - subtotal;
+        cartShippingNote.textContent = `Te faltan ${formatCurrency(
+          remaining
+        )} para envío gratis.`;
+      }
     }
     updateCheckoutSummary();
   };
@@ -616,6 +672,18 @@ if (storeProducts) {
   applyFilters();
   renderCart();
   setProductImages();
+  if (checkoutCountry && internationalNote) {
+    internationalNote.classList.toggle("is-visible", checkoutCountry.value !== "ES");
+  }
+  products.forEach((card) => {
+    const info = card.querySelector(".store-info");
+    if (!info) return;
+    if (info.querySelector(".shipping-tag")) return;
+    const tag = document.createElement("p");
+    tag.className = "shipping-tag";
+    tag.textContent = "Envío gratis desde 30€";
+    info.appendChild(tag);
+  });
   if (checkoutButton && checkoutModal) {
     const closeCheckoutModal = () => {
       checkoutModal.classList.remove("is-visible");
@@ -634,26 +702,45 @@ if (storeProducts) {
       const address = normalizeTextValue(checkoutAddress?.value);
       const phone = normalizeTextValue(checkoutPhone?.value);
       const notes = normalizeTextValue(checkoutNotes?.value);
+      const country = normalizeTextValue(checkoutCountry?.value || "ES");
       if (!name || !address || !phone) {
         return null;
       }
-      return { name, address, phone, notes };
+      return { name, address, phone, notes, country };
     };
 
-    const buildCheckoutPayload = () => ({
-      items: cart.map((item) => ({
+    const buildCheckoutPayload = () => {
+      const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+      const country = checkoutCountry?.value || "ES";
+      const shipping = calculateShipping(subtotal, country);
+      const items = cart.map((item) => ({
         name: item.variant
           ? `${item.name} (${item.variant})`
           : item.name,
         description: formatColorLabel(item.colors),
         price: item.price,
         qty: item.qty,
-      })),
-      customer: getCheckoutCustomer(),
-      currency: "EUR",
-      successUrl: `${window.location.origin}/tienda.html?payment=success`,
-      cancelUrl: `${window.location.origin}/tienda.html?payment=cancel`,
-    });
+      }));
+      if (shipping.cost !== null && shipping.cost > 0) {
+        items.push({
+          name: "Envío",
+          description: "Gastos de envío",
+          price: shipping.cost,
+          qty: 1,
+        });
+      }
+      return {
+        items,
+        customer: getCheckoutCustomer(),
+        shipping: {
+          cost: shipping.cost,
+          label: shipping.label,
+        },
+        currency: "EUR",
+        successUrl: `${window.location.origin}/tienda.html?payment=success`,
+        cancelUrl: `${window.location.origin}/tienda.html?payment=cancel`,
+      };
+    };
 
     const setCheckoutLoading = (isLoading, label) => {
       if (payWithCard instanceof HTMLButtonElement) {
@@ -680,6 +767,19 @@ if (storeProducts) {
         if (checkoutNote) {
           checkoutNote.textContent =
             "Completa nombre, dirección y número móvil para continuar.";
+        }
+        return;
+      }
+      const customerCountry = payload.customer.country || "ES";
+      if (
+        customerCountry !== "ES" &&
+        cart.reduce((sum, item) => sum + item.price * item.qty, 0) <
+          INTERNATIONAL_MIN_ORDER
+      ) {
+        if (checkoutNote) {
+          checkoutNote.textContent = `Pedidos internacionales desde ${formatCurrency(
+            INTERNATIONAL_MIN_ORDER
+          )}.`;
         }
         return;
       }
@@ -716,6 +816,14 @@ if (storeProducts) {
       checkoutModal.classList.add("is-visible");
       document.body.classList.add("modal-open");
       if (checkoutNote) checkoutNote.textContent = "";
+    });
+
+    checkoutCountry?.addEventListener("change", () => {
+      const country = checkoutCountry.value;
+      if (internationalNote) {
+        internationalNote.classList.toggle("is-visible", country !== "ES");
+      }
+      renderCart();
     });
 
     checkoutModal.addEventListener("click", (event) => {
