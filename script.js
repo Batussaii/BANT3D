@@ -11,6 +11,11 @@ const paymentAlert = document.getElementById("paymentAlert");
 const checkoutButton = document.getElementById("checkoutButton");
 const checkoutModal = document.getElementById("checkoutModal");
 const checkoutModalClose = document.getElementById("checkoutModalClose");
+const checkoutForm = document.getElementById("checkoutForm");
+const checkoutName = document.getElementById("checkoutName");
+const checkoutAddress = document.getElementById("checkoutAddress");
+const checkoutPhone = document.getElementById("checkoutPhone");
+const checkoutNotes = document.getElementById("checkoutNotes");
 const checkoutItemsCount = document.getElementById("checkoutItemsCount");
 const checkoutTotal = document.getElementById("checkoutTotal");
 const checkoutNote = document.getElementById("checkoutNote");
@@ -621,6 +626,20 @@ if (storeProducts) {
     const formatColorLabel = (colors) =>
       colors?.length ? `Colores: ${colors.join(", ")}` : "";
 
+    const normalizeTextValue = (value) =>
+      typeof value === "string" ? value.trim() : "";
+
+    const getCheckoutCustomer = () => {
+      const name = normalizeTextValue(checkoutName?.value);
+      const address = normalizeTextValue(checkoutAddress?.value);
+      const phone = normalizeTextValue(checkoutPhone?.value);
+      const notes = normalizeTextValue(checkoutNotes?.value);
+      if (!name || !address || !phone) {
+        return null;
+      }
+      return { name, address, phone, notes };
+    };
+
     const buildCheckoutPayload = () => ({
       items: cart.map((item) => ({
         name: item.variant
@@ -630,6 +649,7 @@ if (storeProducts) {
         price: item.price,
         qty: item.qty,
       })),
+      customer: getCheckoutCustomer(),
       currency: "EUR",
       successUrl: `${window.location.origin}/tienda.html?payment=success`,
       cancelUrl: `${window.location.origin}/tienda.html?payment=cancel`,
@@ -654,6 +674,13 @@ if (storeProducts) {
       const payload = buildCheckoutPayload();
       if (!payload.items.length) {
         if (checkoutNote) checkoutNote.textContent = "Añade productos antes de continuar.";
+        return;
+      }
+      if (!payload.customer) {
+        if (checkoutNote) {
+          checkoutNote.textContent =
+            "Completa nombre, dirección y número móvil para continuar.";
+        }
         return;
       }
 
@@ -688,6 +715,7 @@ if (storeProducts) {
       updateCheckoutSummary();
       checkoutModal.classList.add("is-visible");
       document.body.classList.add("modal-open");
+      if (checkoutNote) checkoutNote.textContent = "";
     });
 
     checkoutModal.addEventListener("click", (event) => {

@@ -80,11 +80,29 @@ const normalizeItems = (items) => {
 };
 
 const processedPayments = new Set();
+const pendingOrders = new Map();
 
 const formatMoney = (value, currency = DEFAULT_CURRENCY) =>
   `${Number(value || 0).toFixed(2)} ${currency}`;
 
-const sendOrderEmail = async ({ source, providerId, currency, total, items }) => {
+const normalizeCustomer = (customer = {}) => ({
+  name: typeof customer?.name === "string" ? customer.name.trim() : "",
+  address: typeof customer?.address === "string" ? customer.address.trim() : "",
+  phone: typeof customer?.phone === "string" ? customer.phone.trim() : "",
+  notes: typeof customer?.notes === "string" ? customer.notes.trim() : "",
+});
+
+const isCustomerValid = (customer) =>
+  Boolean(customer?.name && customer?.address && customer?.phone);
+
+const sendOrderEmail = async ({
+  source,
+  providerId,
+  currency,
+  total,
+  items,
+  customer,
+}) => {
   if (!items.length) return;
   if (providerId && processedPayments.has(providerId)) return;
   if (providerId) processedPayments.add(providerId);
@@ -102,6 +120,26 @@ const sendOrderEmail = async ({ source, providerId, currency, total, items }) =>
     )
     .join("\n");
 
+  const safeCustomer = normalizeCustomer(customer);
+  const customerText = safeCustomer?.name
+    ? `
+Cliente:
+Nombre: ${safeCustomer.name || "-"}
+Direccion: ${safeCustomer.address || "-"}
+Movil: ${safeCustomer.phone || "-"}
+Observaciones: ${safeCustomer.notes || "-"}
+      `.trim()
+    : "";
+  const customerHtml = safeCustomer?.name
+    ? `
+      <h3>Cliente</h3>
+      <p><strong>Nombre:</strong> ${safeCustomer.name || "-"}</p>
+      <p><strong>Direccion:</strong> ${safeCustomer.address || "-"}</p>
+      <p><strong>Movil:</strong> ${safeCustomer.phone || "-"}</p>
+      <p><strong>Observaciones:</strong> ${safeCustomer.notes || "-"}</p>
+    `
+    : "";
+
   await sendMail({
     subject: `Pedido pagado (${source || "pasarela"})`,
     text: `
@@ -109,6 +147,8 @@ Metodo: ${source || "-"}
 Referencia: ${providerId || "-"}
 Moneda: ${currency || DEFAULT_CURRENCY}
 Total: ${formatMoney(totalValue, currency)}
+
+${customerText}
 
 Productos:
 ${orderLines}
@@ -119,6 +159,7 @@ ${orderLines}
       <p><strong>Referencia:</strong> ${providerId || "-"}</p>
       <p><strong>Moneda:</strong> ${currency || DEFAULT_CURRENCY}</p>
       <p><strong>Total:</strong> ${formatMoney(totalValue, currency)}</p>
+      ${customerHtml}
       <h3>Productos</h3>
       <ul>
         ${items
@@ -248,6 +289,12 @@ app.post("/webhooks/stripe", express.raw({ type: "application/json" }), async (r
         res.json({ received: true });
         return;
       }
+      const customer = normalizeCustomer({
+        name: session.metadata?.customer_name,
+        address: session.metadata?.customer_address,
+        phone: session.metadata?.customer_phone,
+        notes: session.metadata?.customer_notes,
+      });
       const lineItems = await stripe.checkout.sessions.listLineItems(sessionId, {
         limit: 100,
       });
@@ -263,6 +310,7 @@ app.post("/webhooks/stripe", express.raw({ type: "application/json" }), async (r
         currency: (session.currency || DEFAULT_CURRENCY).toUpperCase(),
         total: (session.amount_total || 0) / 100,
         items,
+        customer,
       });
     }
 
@@ -373,8 +421,13 @@ app.post("/api/checkout/stripe", async (req, res) => {
       return;
     }
     const items = normalizeItems(req.body?.items);
+    const customer = normalizeCustomer(req.body?.customer);
     if (!items.length) {
       res.status(400).json({ error: "No hay productos para cobrar." });
+      return;
+    }
+    if (!isCustomerValid(customer)) {
+      res.status(400).json({ error: "Datos de envio incompletos." });
       return;
     }
 
@@ -386,6 +439,12 @@ app.post("/api/checkout/stripe", async (req, res) => {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
+      metadata: {
+        customer_name: customer.name,
+        customer_address: customer.address,
+        customer_phone: customer.phone,
+        customer_notes: customer.notes || "",
+      },
       line_items: items.map((item) => ({
         price_data: {
           currency,
@@ -417,8 +476,13 @@ app.post("/api/checkout/paypal", async (req, res) => {
       return;
     }
     const items = normalizeItems(req.body?.items);
+    const customer = normalizeCustomer(req.body?.customer);
     if (!items.length) {
       res.status(400).json({ error: "No hay productos para cobrar." });
+      return;
+    }
+    if (!isCustomerValid(customer)) {
+      res.status(400).json({ error: "Datos de envio incompletos." });
       return;
     }
 
@@ -471,7 +535,12 @@ app.post("/api/checkout/paypal", async (req, res) => {
       return;
     }
 
-    res.json({ url: approve.href, orderId: response?.result?.id });
+    const orderId = response?.result?.id;
+    if (orderId) {
+      pendingOrders.set(orderId, customer);
+    }
+
+    res.json({ url: approve.href, orderId });
   } catch (error) {
     res.status(500).json({
       error: error?.message || "No se pudo iniciar el pago con PayPal.",
@@ -518,6 +587,10 @@ app.post("/webhooks/paypal", async (req, res) => {
           qty: Number(item.quantity || 1),
         }))
       ) || [];
+    const customer = pendingOrders.get(orderId);
+    if (customer) {
+      pendingOrders.delete(orderId);
+    }
 
     await sendOrderEmail({
       source: "paypal",
@@ -525,6 +598,7 @@ app.post("/webhooks/paypal", async (req, res) => {
       currency,
       total,
       items,
+      customer,
     });
 
     res.json({ received: true });

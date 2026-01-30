@@ -235,6 +235,24 @@
         <button class="modal-close" id="checkoutModalClose" type="button">✕</button>
         <h3>Finalizar compra</h3>
         <p class="muted">Elige tu método de pago para completar el pedido.</p>
+        <form class="checkout-form" id="checkoutForm">
+          <label>
+            Nombre completo
+            <input type="text" id="checkoutName" name="name" required />
+          </label>
+          <label>
+            Dirección
+            <input type="text" id="checkoutAddress" name="address" required />
+          </label>
+          <label>
+            Número móvil
+            <input type="tel" id="checkoutPhone" name="phone" required />
+          </label>
+          <label>
+            Observaciones del envío
+            <textarea id="checkoutNotes" name="notes" rows="3"></textarea>
+          </label>
+        </form>
         <div class="checkout-summary">
           <div>
             <span>Productos</span>

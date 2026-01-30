@@ -819,6 +819,16 @@ a {
   font-size: 0.95rem;
 }
 
+.checkout-form {
+  display: grid;
+  gap: 12px;
+}
+
+.checkout-form input,
+.checkout-form textarea {
+  width: 100%;
+}
+
 .muted {
   color: var(--muted);
 }
