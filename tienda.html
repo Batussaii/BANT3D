@@ -335,6 +335,10 @@
                 <span>Subtotal</span>
                 <strong id="cartSubtotal">€0.00</strong>
               </div>
+              <div id="cartDiscountRow">
+                <span>Descuento</span>
+                <strong id="cartDiscount">€0.00</strong>
+              </div>
               <div>
                 <span>Envío</span>
                 <strong id="cartShipping">€0.00</strong>
@@ -351,6 +355,18 @@
               Selecciona tu pasarela de pago para completar el pedido.
             </p>
             <p class="cart-note" id="cartShippingNote"></p>
+            <div class="coupon-row">
+              <input
+                type="text"
+                id="couponInput"
+                placeholder="Escribe codigo aqui..."
+                aria-label="Escribe codigo aqui"
+              />
+              <button class="btn btn-light" id="couponApply" type="button">
+                Aplicar codigo
+              </button>
+              <p class="cart-note" id="couponStatus"></p>
+            </div>
             <div class="alert" id="paymentAlert" role="status" aria-live="polite"></div>
           </div>
           <a class="btn btn-ghost cart-back-top" href="#storeFilters">VOLVER ARRIBA</a>

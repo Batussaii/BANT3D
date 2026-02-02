@@ -909,6 +909,23 @@ a {
   gap: 10px;
 }
 
+.coupon-row {
+  display: grid;
+  gap: 10px;
+}
+
+.coupon-row .btn {
+  width: 100%;
+}
+
+.coupon-row input {
+  width: 100%;
+}
+
+.coupon-row .cart-note {
+  margin-top: 4px;
+}
+
 .cart-item {
   display: flex;
   justify-content: space-between;

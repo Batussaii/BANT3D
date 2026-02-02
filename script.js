@@ -8,8 +8,13 @@ const storePrice = document.getElementById("storePrice");
 const cartList = document.getElementById("cartList");
 const cartTotal = document.getElementById("cartTotal");
 const cartSubtotal = document.getElementById("cartSubtotal");
+const cartDiscount = document.getElementById("cartDiscount");
+const cartDiscountRow = document.getElementById("cartDiscountRow");
 const cartShipping = document.getElementById("cartShipping");
 const cartShippingNote = document.getElementById("cartShippingNote");
+const couponInput = document.getElementById("couponInput");
+const couponApply = document.getElementById("couponApply");
+const couponStatus = document.getElementById("couponStatus");
 const paymentAlert = document.getElementById("paymentAlert");
 const checkoutButton = document.getElementById("checkoutButton");
 const checkoutModal = document.getElementById("checkoutModal");
@@ -334,14 +339,26 @@ if (storeProducts) {
   const products = Array.from(storeProducts.querySelectorAll("[data-product]"));
   const cart = [];
   let activeCategory = "all";
+  const ACTIVE_COUPON = { code: "BANT20", percent: 0.2 };
+  let appliedCoupon = null;
+
+  const normalizeCoupon = (value) => value.trim().toUpperCase();
+
+  const getDiscount = (subtotal) => {
+    if (!appliedCoupon) return 0;
+    return subtotal * appliedCoupon.percent;
+  };
 
   const updateCheckoutSummary = () => {
     if (!checkoutItemsCount || !checkoutTotal) return;
     const itemCount = cart.reduce((sum, item) => sum + item.qty, 0);
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+    const discount = getDiscount(subtotal);
+    const discountedSubtotal = Math.max(0, subtotal - discount);
     const country = checkoutCountry?.value || "ES";
     const shipping = calculateShipping(subtotal, country);
-    const total = shipping.cost === null ? subtotal : subtotal + shipping.cost;
+    const total =
+      shipping.cost === null ? discountedSubtotal : discountedSubtotal + shipping.cost;
     checkoutItemsCount.textContent = itemCount.toString();
     checkoutTotal.textContent = formatCurrency(total);
     if (checkoutShipping) {
@@ -360,6 +377,8 @@ if (storeProducts) {
       empty.textContent = "No hay productos todavía.";
       cartList.appendChild(empty);
       if (cartSubtotal) cartSubtotal.textContent = "€0.00";
+      if (cartDiscount) cartDiscount.textContent = "€0.00";
+      if (cartDiscountRow) cartDiscountRow.classList.add("is-hidden");
       if (cartShipping) cartShipping.textContent = "€0.00";
       cartTotal.textContent = "€0.00";
       return;
@@ -392,10 +411,20 @@ if (storeProducts) {
       cartList.appendChild(row);
     });
 
+    const discount = getDiscount(subtotal);
+    const discountedSubtotal = Math.max(0, subtotal - discount);
     const country = checkoutCountry?.value || "ES";
     const shipping = calculateShipping(subtotal, country);
-    const total = shipping.cost === null ? subtotal : subtotal + shipping.cost;
+    const total =
+      shipping.cost === null ? discountedSubtotal : discountedSubtotal + shipping.cost;
     if (cartSubtotal) cartSubtotal.textContent = formatCurrency(subtotal);
+    if (cartDiscount) {
+      cartDiscount.textContent =
+        discount > 0 ? `-${formatCurrency(discount)}` : "€0.00";
+    }
+    if (cartDiscountRow) {
+      cartDiscountRow.classList.toggle("is-hidden", discount <= 0);
+    }
     if (cartShipping) {
       cartShipping.textContent =
         shipping.cost === null ? shipping.label : formatCurrency(shipping.cost);
@@ -423,6 +452,29 @@ if (storeProducts) {
       }
     }
     updateCheckoutSummary();
+  };
+
+  const applyCoupon = () => {
+    if (!couponInput) return;
+    const code = normalizeCoupon(couponInput.value || "");
+    if (!code) {
+      appliedCoupon = null;
+      if (couponStatus) couponStatus.textContent = "";
+      renderCart();
+      return;
+    }
+    if (code === ACTIVE_COUPON.code) {
+      appliedCoupon = ACTIVE_COUPON;
+      if (couponStatus) {
+        couponStatus.textContent = `Codigo aplicado: ${ACTIVE_COUPON.code} (-20%)`;
+      }
+    } else {
+      appliedCoupon = null;
+      if (couponStatus) {
+        couponStatus.textContent = "Codigo no valido.";
+      }
+    }
+    renderCart();
   };
 
   const setProductImages = () => {
@@ -741,6 +793,13 @@ if (storeProducts) {
     if (id) {
       removeFromCart(id);
     }
+  });
+
+  couponApply?.addEventListener("click", applyCoupon);
+  couponInput?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    applyCoupon();
   });
 
   storeCategories?.addEventListener("click", (event) => {
