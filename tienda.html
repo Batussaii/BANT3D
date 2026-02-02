@@ -51,9 +51,12 @@
     </header>
 
     <main class="store-main">
+      <a class="cart-fab btn btn-primary" href="#checkout" aria-label="Ir al carrito">
+        Carrito
+      </a>
       <section class="store-layout">
         <aside class="store-sidebar">
-          <div class="filter-card">
+          <div class="filter-card" id="storeFilters">
             <h3>Filtros</h3>
             <label>
               Buscar
@@ -350,6 +353,7 @@
             <p class="cart-note" id="cartShippingNote"></p>
             <div class="alert" id="paymentAlert" role="status" aria-live="polite"></div>
           </div>
+          <a class="btn btn-ghost cart-back-top" href="#storeFilters">VOLVER ARRIBA</a>
         </aside>
       </section>
     </main>
