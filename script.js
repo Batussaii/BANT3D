@@ -75,6 +75,26 @@ const fallbackImages = [
   "assets/SliderIndex/test5.png",
 ];
 
+const HERO_PROMO_CONFIG = {
+  isProductPromo: true,
+  badge: "NEW",
+  product: {
+    kicker: "Promocion de producto",
+    title: "Soporte auriculares Sakura",
+    description: "Edicion limitada con acabado premium.",
+    imageSrc: "assets/StoreImages/Soporte-auriculares-Sakura.png",
+    imageAlt: "Soporte auriculares Sakura",
+    price: 15,
+    oldPriceAdd: 5,
+  },
+  web: {
+    kicker: "Promocion web",
+    title: "20% en tu primer pedido",
+    description: "Usa el codigo y activa el descuento al pagar.",
+    code: "BANT20",
+  },
+};
+
 const SLIDE_INTERVAL_MS = 7000;
 let sliderTimer = null;
 
@@ -180,6 +200,76 @@ const loadSliderImages = async () => {
   startSlider();
 };
 
+const formatPromoPrice = (value) => {
+  if (typeof value !== "number" || Number.isNaN(value)) return "";
+  const rounded = Math.round(value * 100) / 100;
+  if (Number.isInteger(rounded)) return `${rounded}€`;
+  return `${rounded.toFixed(2).replace(".", ",")}€`;
+};
+
+const initHeroPromo = () => {
+  const promo = document.querySelector("[data-hero-promo]");
+  if (!promo) return;
+  const badge = promo.querySelector("[data-hero-promo-badge]");
+  const kicker = promo.querySelector("[data-hero-promo-kicker]");
+  const title = promo.querySelector("[data-hero-promo-title]");
+  const desc = promo.querySelector("[data-hero-promo-desc]");
+  const code = promo.querySelector("[data-hero-promo-code]");
+  const image = promo.querySelector("[data-hero-promo-image]");
+  const price = promo.querySelector("[data-hero-promo-price]");
+  const oldPrice = promo.querySelector("[data-hero-promo-price-old]");
+  const newPrice = promo.querySelector("[data-hero-promo-price-new]");
+
+  const setText = (element, value) => {
+    if (!element) return;
+    element.textContent = value || "";
+  };
+
+  const setHidden = (element, isHidden) => {
+    if (!element) return;
+    element.classList.toggle("is-hidden", isHidden);
+  };
+
+  const { isProductPromo, badge: badgeLabel, product, web } = HERO_PROMO_CONFIG;
+
+  promo.classList.toggle("is-product", isProductPromo);
+  promo.classList.toggle("is-web", !isProductPromo);
+
+  setText(badge, badgeLabel);
+
+  if (isProductPromo) {
+    setText(kicker, product.kicker);
+    setText(title, product.title);
+    setText(desc, product.description);
+    const basePrice = typeof product.price === "number" ? product.price : Number(product.price);
+    const extra = typeof product.oldPriceAdd === "number" ? product.oldPriceAdd : 0;
+    const oldValue = basePrice + extra;
+    setText(oldPrice, formatPromoPrice(oldValue));
+    setText(newPrice, formatPromoPrice(basePrice));
+    setHidden(code, true);
+    setHidden(price, false);
+
+    if (image instanceof HTMLImageElement) {
+      image.src = product.imageSrc;
+      image.alt = product.imageAlt || product.title || "Producto en promocion";
+      image.loading = "lazy";
+      image.decoding = "async";
+    }
+  } else {
+    setText(kicker, web.kicker);
+    setText(title, web.title);
+    setText(desc, web.description);
+    setText(code, web.code);
+    setHidden(code, !web.code);
+    setHidden(price, true);
+
+    if (image instanceof HTMLImageElement) {
+      image.removeAttribute("src");
+      image.alt = "";
+    }
+  }
+};
+
 const sendFormToApi = async (formElement, noteElement, successMessage) => {
   try {
     const fileInput = formElement.querySelector('input[type="file"]');
@@ -237,6 +327,7 @@ if (form) {
   });
 }
 
+initHeroPromo();
 loadSliderImages();
 
 if (storeProducts) {
