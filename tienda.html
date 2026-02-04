@@ -476,8 +476,14 @@
         <button class="btn btn-primary" id="payWithCard" type="button">
           Pagar con tarjeta
         </button>
-        <button class="btn btn-light" id="payWithPaypal" type="button">
-          Pagar con PayPal
+        <button
+          class="btn btn-light is-disabled"
+          id="payWithPaypal"
+          type="button"
+          disabled
+          aria-disabled="true"
+        >
+          PayPal temporalmente no disponible
         </button>
         <p class="form-note" id="checkoutNote"></p>
       </div>

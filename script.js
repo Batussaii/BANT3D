@@ -60,6 +60,7 @@ const REQUEST_ENDPOINT = "/api/request";
 const COLOR_ENDPOINT = "/api/color-request";
 const STRIPE_ENDPOINT = "/api/checkout/stripe";
 const PAYPAL_ENDPOINT = "/api/checkout/paypal";
+const PAYPAL_DISABLED = true;
 const COLOR_NAME_MAP = {
   blanco: "#ffffff",
   negro: "#000000",
@@ -912,6 +913,12 @@ if (storeProducts) {
         if (!isLoading) payWithCard.textContent = "Pagar con tarjeta";
       }
       if (payWithPaypal instanceof HTMLButtonElement) {
+        if (PAYPAL_DISABLED) {
+          payWithPaypal.disabled = true;
+          payWithPaypal.classList.add("is-disabled");
+          payWithPaypal.textContent = "PayPal temporalmente no disponible";
+          return;
+        }
         payWithPaypal.disabled = isLoading;
         payWithPaypal.classList.toggle("is-disabled", isLoading);
         if (label) payWithPaypal.textContent = label;
@@ -972,6 +979,12 @@ if (storeProducts) {
       }
     };
 
+    if (PAYPAL_DISABLED && payWithPaypal instanceof HTMLButtonElement) {
+      payWithPaypal.disabled = true;
+      payWithPaypal.classList.add("is-disabled");
+      payWithPaypal.textContent = "PayPal temporalmente no disponible";
+    }
+
     checkoutButton.addEventListener("click", () => {
       if (checkoutButton instanceof HTMLButtonElement && checkoutButton.disabled) return;
       updateCheckoutSummary();
@@ -996,7 +1009,9 @@ if (storeProducts) {
 
     checkoutModalClose?.addEventListener("click", closeCheckoutModal);
     payWithCard?.addEventListener("click", () => startCheckout(STRIPE_ENDPOINT));
-    payWithPaypal?.addEventListener("click", () => startCheckout(PAYPAL_ENDPOINT));
+    if (!PAYPAL_DISABLED) {
+      payWithPaypal?.addEventListener("click", () => startCheckout(PAYPAL_ENDPOINT));
+    }
   }
 }
 
