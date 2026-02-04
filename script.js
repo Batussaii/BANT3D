@@ -53,6 +53,7 @@ const AVAILABLE_COLORS = [
   "#3b82f6",
   "#8b5cf6",
   "#ec4899",
+  "#f5f5dc",
   "#ffff26",
 ];
 const REQUEST_ENDPOINT = "/api/request";
@@ -70,6 +71,7 @@ const COLOR_NAME_MAP = {
   morado: "#8b5cf6",
   rosa: "#f9a8d4",
   gris: "#9ca3af",
+  beige: "#f5f5dc",
 };
 const sliderDirectory = "assets/SliderIndex/";
 const fallbackImages = [
