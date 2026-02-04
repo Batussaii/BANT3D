@@ -332,13 +332,30 @@ a {
   color: #fff;
 }
 
-.hero-promo.is-web .hero-promo-media,
 .hero-promo.is-web .hero-promo-price {
   display: none;
 }
 
 .hero-promo.is-web .hero-promo-body {
   grid-template-columns: 1fr;
+  gap: 0;
+}
+
+.hero-promo.is-web {
+  padding: 0;
+}
+
+.hero-promo.is-web .hero-promo-copy {
+  display: none;
+}
+
+.hero-promo.is-web .hero-promo-media img {
+  max-width: none;
+  width: 100%;
+  padding: 0;
+  border-radius: 32px;
+  background: transparent;
+  box-shadow: none;
 }
 
 .glow {

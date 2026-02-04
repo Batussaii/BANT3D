@@ -83,8 +83,8 @@ const fallbackImages = [
 ];
 
 const HERO_PROMO_CONFIG = {
-  isProductPromo: true,
-  badge: "NEW",
+  isProductPromo: false,
+  badge: "PROMO",
   product: {
     kicker: "Promocion de producto",
     title: "Soporte auriculares Sakura",
@@ -95,10 +95,12 @@ const HERO_PROMO_CONFIG = {
     oldPriceAdd: 5,
   },
   web: {
-    kicker: "Promocion web",
-    title: "20% en tu primer pedido",
+    kicker: "San Valentin",
+    title: "Descuento del 14%",
     description: "Usa el codigo y activa el descuento al pagar.",
-    code: "BANT20",
+    code: "BANTVALENTIN14",
+    imageSrc: "assets/CodigoSanValentin.png",
+    imageAlt: "Codigo de descuento San Valentin",
   },
 };
 
@@ -271,8 +273,15 @@ const initHeroPromo = () => {
     setHidden(price, true);
 
     if (image instanceof HTMLImageElement) {
-      image.removeAttribute("src");
-      image.alt = "";
+      if (web.imageSrc) {
+        image.src = web.imageSrc;
+        image.alt = web.imageAlt || web.title || "Promocion web";
+        image.loading = "lazy";
+        image.decoding = "async";
+      } else {
+        image.removeAttribute("src");
+        image.alt = "";
+      }
     }
   }
 };
@@ -341,7 +350,7 @@ if (storeProducts) {
   const products = Array.from(storeProducts.querySelectorAll("[data-product]"));
   const cart = [];
   let activeCategory = "all";
-  const ACTIVE_COUPON = { code: "BANT20", percent: 0.2 };
+  const ACTIVE_COUPON = { code: "BANTVALENTIN14", percent: 0.14 };
   let appliedCoupon = null;
 
   const normalizeCoupon = (value) => value.trim().toUpperCase();
@@ -468,7 +477,8 @@ if (storeProducts) {
     if (code === ACTIVE_COUPON.code) {
       appliedCoupon = ACTIVE_COUPON;
       if (couponStatus) {
-        couponStatus.textContent = `Codigo aplicado: ${ACTIVE_COUPON.code} (-20%)`;
+        const percentLabel = Math.round(ACTIVE_COUPON.percent * 100);
+        couponStatus.textContent = `Codigo aplicado: ${ACTIVE_COUPON.code} (-${percentLabel}%)`;
       }
     } else {
       appliedCoupon = null;
