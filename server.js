@@ -502,6 +502,7 @@ app.post("/api/checkout/paypal", async (req, res) => {
     }
     const items = normalizeItems(req.body?.items);
     const customer = normalizeCustomer(req.body?.customer);
+    const shipping = req.body?.shipping || {};
     if (!items.length) {
       res.status(400).json({ error: "No hay productos para cobrar." });
       return;
