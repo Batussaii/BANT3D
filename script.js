@@ -740,6 +740,7 @@ if (storeProducts) {
     const priceRange = storePrice ? storePrice.value : "all";
 
     products.forEach((card) => {
+      const isActive = card.dataset.active !== "false";
       const name = card.dataset.name?.toLowerCase() || "";
       const category = card.dataset.category || "";
       const price = Number(card.dataset.price || 0);
@@ -749,7 +750,7 @@ if (storeProducts) {
 
       card.classList.toggle(
         "is-hidden",
-        !(matchesCategory && matchesQuery && matchesRange)
+        !isActive || !(matchesCategory && matchesQuery && matchesRange)
       );
     });
   };
@@ -778,7 +779,7 @@ if (storeProducts) {
     }
     if (target.classList.contains("add-to-cart")) {
       const card = target.closest("[data-product]");
-      if (!card) return;
+      if (!card || card.dataset.active === "false") return;
       const selectedColors = JSON.parse(card.dataset.selectedColors || "[]");
       if (card.dataset.custom === "true" && selectedColors.some((color) => !color)) {
         return;
