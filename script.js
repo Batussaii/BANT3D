@@ -79,8 +79,6 @@ const fallbackImages = [
   "assets/SliderIndex/test1.png",
   "assets/SliderIndex/test2.png",
   "assets/SliderIndex/test3.png",
-  "assets/SliderIndex/test4.png",
-  "assets/SliderIndex/test5.png",
 ];
 
 const HERO_PROMO_CONFIG = {
@@ -96,12 +94,12 @@ const HERO_PROMO_CONFIG = {
     oldPriceAdd: 5,
   },
   web: {
-    kicker: "San Valentin",
-    title: "Descuento del 14%",
+    kicker: "Semana Santa",
+    title: "Descuento del 20%",
     description: "Usa el codigo y activa el descuento al pagar.",
-    code: "BANTVALENTIN14",
-    imageSrc: "assets/CodigoSanValentin.png",
-    imageAlt: "Codigo de descuento San Valentin",
+    code: "ABRILSANTO20",
+    imageSrc: "assets/CodigoSemanaSanta.png",
+    imageAlt: "Codigo de descuento Semana Santa",
   },
 };
 
@@ -351,7 +349,7 @@ if (storeProducts) {
   const products = Array.from(storeProducts.querySelectorAll("[data-product]"));
   const cart = [];
   let activeCategory = "all";
-  const ACTIVE_COUPON = { code: "BANTVALENTIN14", percent: 0.14 };
+  const ACTIVE_COUPON = { code: "ABRILSANTO20", percent: 0.2 };
   let appliedCoupon = null;
 
   const normalizeCoupon = (value) => value.trim().toUpperCase();

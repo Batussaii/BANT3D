@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Porra ARIRANG ARMY Cádiz | Bant3D</title>
+    <meta
+      name="description"
+      content="Participa en la porra ARIRANG ARMY Cádiz. Ordena canciones, escucha clips y envía tu participación."
+    />
+    <meta name="theme-color" content="#7b2cff" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="arirang.css" />
+    <link rel="icon" href="assets/logo.png" />
+    <link rel="apple-touch-icon" href="assets/logo.png" />
+  </head>
+  <body>
+    <header class="site-header store-header">
+      <nav class="navbar">
+        <div class="brand">
+          <img src="assets/logo.png" alt="Bant3D logo" class="brand-logo" />
+          <span class="brand-name">Bant3D</span>
+        </div>
+        <div class="nav-links">
+          <a href="index.html#servicios">Servicios</a>
+          <a href="tienda.html">Tienda</a>
+          <a href="arirang.html">Porra ARIRANG</a>
+          <a href="index.html#personalizados">Personalizados</a>
+          <a href="index.html#contacto">Contacto</a>
+        </div>
+        <a class="btn btn-primary" href="tienda.html">Ir a la tienda</a>
+      </nav>
+    </header>
+
+    <main class="arirang-page">
+      <section class="arirang-wrap" aria-labelledby="arirangTitle">
+        <header class="arirang-header">
+          <p class="arirang-badge">Minievento fans</p>
+          <h1 id="arirangTitle">Porra ARIRANG ARMY Cádiz 💜</h1>
+          <p class="arirang-subtitle">
+            Ordena las canciones según crees que será el concierto. Puedes escuchar
+            un fragmento con el botón ▶️
+          </p>
+        </header>
+
+        <form id="arirangForm" class="arirang-form" novalidate>
+          <div class="arirang-field">
+            <label for="arirangFullName">Nombre completo *</label>
+            <input
+              id="arirangFullName"
+              name="fullName"
+              type="text"
+              autocomplete="name"
+              required
+              placeholder="Ej: Ana Pérez García"
+            />
+          </div>
+
+          <div class="arirang-field">
+            <label for="arirangEmail">Email *</label>
+            <input
+              id="arirangEmail"
+              name="email"
+              type="email"
+              autocomplete="email"
+              required
+              placeholder="Ej: tuemail@correo.com"
+            />
+            <p class="arirang-help">
+              Solo usaremos tu email para comunicar el resultado del premio
+            </p>
+          </div>
+
+          <section class="arirang-songs" aria-labelledby="arirangSongsTitle">
+            <div class="arirang-songs-head">
+              <h2 id="arirangSongsTitle">Orden de canciones</h2>
+              <p>Arrastra y suelta o usa los botones ↑ ↓</p>
+            </div>
+
+            <ul id="arirangSongList" class="arirang-song-list" aria-live="polite"></ul>
+          </section>
+
+          <button type="submit" class="arirang-submit-btn">
+            Enviar participación
+          </button>
+        </form>
+
+        <div
+          id="arirangSuccess"
+          class="arirang-success"
+          role="status"
+          aria-live="polite"
+        >
+          💜 ¡Gracias ARMY! Ya estás participando 💜
+        </div>
+      </section>
+    </main>
+
+    <script src="arirang.js"></script>
+  </body>
+</html>

@@ -434,6 +434,73 @@ Observaciones: ${notes || "-"}
   }
 });
 
+app.post("/api/arirang-participation", async (req, res) => {
+  try {
+    const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
+    const email = typeof req.body?.email === "string" ? req.body.email.trim() : "";
+    const createdAt =
+      typeof req.body?.createdAt === "string" ? req.body.createdAt : new Date().toISOString();
+    const songsOrder = Array.isArray(req.body?.songsOrder) ? req.body.songsOrder : [];
+
+    if (!name || !email) {
+      res.status(400).json({ error: "Nombre y email son obligatorios." });
+      return;
+    }
+
+    if (!songsOrder.length) {
+      res.status(400).json({ error: "Debes enviar el orden de canciones." });
+      return;
+    }
+
+    const normalizedSongs = songsOrder
+      .map((song, index) => ({
+        position: Number(song?.position) || index + 1,
+        title: typeof song?.title === "string" ? song.title.trim() : "",
+      }))
+      .filter((song) => song.title);
+
+    if (!normalizedSongs.length) {
+      res.status(400).json({ error: "El orden de canciones no es valido." });
+      return;
+    }
+
+    const songsText = normalizedSongs
+      .map((song) => `${song.position}. ${song.title}`)
+      .join("\n");
+
+    await sendMail({
+      subject: `Nueva porra ARIRANG - ${name}`,
+      text: `
+Nueva participacion en Porra ARIRANG ARMY Cadiz
+
+Nombre: ${name}
+Email: ${email}
+Fecha: ${createdAt}
+
+Orden de canciones:
+${songsText}
+      `.trim(),
+      html: `
+        <h2>Nueva participacion en Porra ARIRANG ARMY Cadiz</h2>
+        <p><strong>Nombre:</strong> ${name}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Fecha:</strong> ${createdAt}</p>
+        <h3>Orden de canciones</h3>
+        <ol>
+          ${normalizedSongs.map((song) => `<li>${song.title}</li>`).join("")}
+        </ol>
+      `,
+      attachments: [],
+    });
+
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({
+      error: error?.message || "No se pudo registrar la participacion.",
+    });
+  }
+});
+
 app.post("/api/checkout/stripe", async (req, res) => {
   try {
     if (!stripe) {
@@ -632,6 +699,10 @@ app.post("/webhooks/paypal", async (req, res) => {
   } catch (error) {
     res.status(500).send("Error webhook PayPal");
   }
+});
+
+app.get("/arirang", (req, res) => {
+  res.sendFile(path.join(__dirname, "arirang.html"));
 });
 
 app.get("*", (req, res) => {

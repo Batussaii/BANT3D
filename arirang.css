@@ -1,0 +1,242 @@
+:root {
+  --arirang-bg: #0f0b14;
+  --arirang-surface: #191124;
+  --arirang-surface-soft: #241736;
+  --arirang-primary: #b17cff;
+  --arirang-primary-strong: #9b5eff;
+  --arirang-text: #ffffff;
+  --arirang-text-soft: #d7cae9;
+  --arirang-border: #3d2a58;
+  --arirang-ok: #7af0b3;
+  --arirang-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Outfit", system-ui, -apple-system, sans-serif;
+  background: radial-gradient(circle at top, #2f1a47 0%, var(--arirang-bg) 55%);
+  color: var(--arirang-text);
+}
+
+.arirang-page {
+  min-height: 100dvh;
+  padding: 24px 16px 40px;
+}
+
+.arirang-wrap {
+  max-width: 860px;
+  margin: 0 auto;
+  background: rgba(25, 17, 36, 0.95);
+  border: 1px solid var(--arirang-border);
+  border-radius: 18px;
+  box-shadow: var(--arirang-shadow);
+  padding: 24px;
+}
+
+.arirang-header h1 {
+  font-size: clamp(1.7rem, 4.8vw, 2.4rem);
+  line-height: 1.2;
+  margin: 0 0 10px;
+}
+
+.arirang-badge {
+  display: inline-block;
+  margin: 0 0 12px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--arirang-surface-soft);
+  color: var(--arirang-text-soft);
+  border: 1px solid var(--arirang-border);
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.arirang-subtitle {
+  margin: 0 0 24px;
+  color: var(--arirang-text-soft);
+  font-size: 1.05rem;
+}
+
+.arirang-form {
+  display: grid;
+  gap: 18px;
+}
+
+.arirang-field {
+  display: grid;
+  gap: 8px;
+}
+
+.arirang-field label {
+  font-weight: 600;
+}
+
+.arirang-field input {
+  width: 100%;
+  min-height: 52px;
+  border-radius: 12px;
+  border: 1px solid var(--arirang-border);
+  background: #100c17;
+  color: var(--arirang-text);
+  padding: 12px 14px;
+  font-size: 1rem;
+}
+
+.arirang-field input:focus-visible,
+.arirang-submit-btn:focus-visible,
+.arirang-action-btn:focus-visible,
+.arirang-audio-btn:focus-visible {
+  outline: 3px solid #ffffff;
+  outline-offset: 2px;
+}
+
+.arirang-help {
+  margin: 0;
+  color: var(--arirang-text-soft);
+  font-size: 0.95rem;
+}
+
+.arirang-songs {
+  background: var(--arirang-surface);
+  border: 1px solid var(--arirang-border);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.arirang-songs-head h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.arirang-songs-head p {
+  margin: 6px 0 12px;
+  color: var(--arirang-text-soft);
+}
+
+.arirang-song-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.arirang-song-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  background: #120d1d;
+  border: 1px solid var(--arirang-border);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.arirang-handle {
+  min-width: 44px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  border: 1px dashed #705096;
+  color: var(--arirang-text-soft);
+  font-size: 1.2rem;
+  cursor: grab;
+  user-select: none;
+}
+
+.arirang-song-main {
+  display: grid;
+  gap: 8px;
+}
+
+.arirang-song-title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.arirang-audio-btn,
+.arirang-action-btn,
+.arirang-submit-btn {
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 700;
+}
+
+.arirang-audio-btn {
+  min-height: 44px;
+  padding: 10px 14px;
+  background: #2d1a45;
+  color: #fff;
+  font-size: 0.95rem;
+}
+
+.arirang-controls {
+  display: grid;
+  gap: 8px;
+}
+
+.arirang-action-btn {
+  width: 50px;
+  min-height: 44px;
+  font-size: 1.1rem;
+  background: #f4efff;
+  color: #1b112a;
+}
+
+.arirang-submit-btn {
+  min-height: 56px;
+  background: linear-gradient(180deg, var(--arirang-primary), var(--arirang-primary-strong));
+  color: #13091f;
+  font-size: 1.05rem;
+  transition: transform 0.15s ease;
+}
+
+.arirang-submit-btn:hover {
+  transform: translateY(-1px);
+}
+
+.arirang-success {
+  margin-top: 16px;
+  border: 1px solid #3f8061;
+  background: rgba(20, 71, 47, 0.5);
+  border-radius: 12px;
+  color: var(--arirang-ok);
+  padding: 14px;
+  font-weight: 700;
+  display: none;
+}
+
+.arirang-success.is-visible {
+  display: block;
+}
+
+.arirang-field.is-error input {
+  border-color: #ff8cab;
+}
+
+@media (max-width: 640px) {
+  .arirang-wrap {
+    padding: 18px;
+  }
+
+  .arirang-song-item {
+    grid-template-columns: 1fr;
+  }
+
+  .arirang-controls {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .arirang-action-btn {
+    width: 100%;
+  }
+}
