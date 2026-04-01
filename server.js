@@ -84,8 +84,6 @@ const pendingOrders = new Map();
 
 const formatMoney = (value, currency = DEFAULT_CURRENCY) =>
   `${Number(value || 0).toFixed(2)} ${currency}`;
-const isValidEmail = (value) =>
-  typeof value === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
 const normalizeCustomer = (customer = {}) => ({
   name: typeof customer?.name === "string" ? customer.name.trim() : "",
@@ -344,33 +342,26 @@ app.post("/webhooks/stripe", express.raw({ type: "application/json" }), async (r
 
 app.use(express.json());
 
-const sendMail = async ({ to, subject, text, html, attachments, replyTo }) => {
+const sendMail = async ({ to, subject, text, html, attachments }) => {
   const transporter = buildTransporter();
   if (!transporter) {
     throw new Error("SMTP no configurado");
   }
 
-  const message = {
+  await transporter.sendMail({
     from: process.env.SMTP_FROM,
     to: to || getRecipient(),
     subject,
     text,
     html,
     attachments,
-  };
-
-  if (replyTo) {
-    message.replyTo = replyTo;
-  }
-
-  await transporter.sendMail(message);
+  });
 };
 
 app.post("/api/request", upload.single("attachment"), async (req, res) => {
   try {
     const { name, email, service, budget, details } = req.body;
     const file = req.file;
-    const customerEmail = typeof email === "string" ? email.trim() : "";
 
     const attachments = file
       ? [
@@ -399,43 +390,7 @@ Detalles: ${details || "-"}
         <p><strong>Detalles:</strong><br/>${details || "-"}</p>
       `,
       attachments,
-      replyTo: isValidEmail(customerEmail) ? customerEmail : undefined,
     });
-
-    if (isValidEmail(customerEmail)) {
-      await sendMail({
-        to: customerEmail,
-        subject: "Hemos recibido tu solicitud - Bant3D",
-        text: `
-Hola ${name || ""},
-
-Gracias por tu solicitud. Hemos recibido correctamente tus datos.
-
-Resumen:
-- Servicio: ${service || "-"}
-- Presupuesto: ${budget || "-"}
-- Detalles: ${details || "-"}
-
-Te responderemos en menos de 24 horas.
-
-Equipo Bant3D
-        `.trim(),
-        html: `
-          <h2>Solicitud recibida</h2>
-          <p>Hola ${name || "cliente"},</p>
-          <p>Gracias por tu solicitud. Hemos recibido correctamente tus datos.</p>
-          <h3>Resumen</h3>
-          <ul>
-            <li><strong>Servicio:</strong> ${service || "-"}</li>
-            <li><strong>Presupuesto:</strong> ${budget || "-"}</li>
-            <li><strong>Detalles:</strong> ${details || "-"}</li>
-          </ul>
-          <p>Te responderemos en menos de 24 horas.</p>
-          <p>Equipo Bant3D</p>
-        `,
-        attachments: [],
-      });
-    }
 
     res.json({ ok: true });
   } catch (error) {
@@ -534,6 +489,32 @@ ${songsText}
         <ol>
           ${normalizedSongs.map((song) => `<li>${song.title}</li>`).join("")}
         </ol>
+      `,
+      attachments: [],
+    });
+
+    await sendMail({
+      to: email,
+      subject: "Hemos recibido tu porra ARIRANG",
+      text: `
+Hola ${name},
+
+Gracias por participar en la Porra ARIRANG ARMY Cadiz.
+Hemos recibido correctamente tu orden de canciones:
+
+${songsText}
+
+Nos vemos en el evento.
+      `.trim(),
+      html: `
+        <h2>Hemos recibido tu porra ARIRANG</h2>
+        <p>Hola <strong>${name}</strong>,</p>
+        <p>Gracias por participar en la Porra ARIRANG ARMY Cadiz.</p>
+        <p>Este es el orden de canciones que registramos:</p>
+        <ol>
+          ${normalizedSongs.map((song) => `<li>${song.title}</li>`).join("")}
+        </ol>
+        <p>Nos vemos en el evento.</p>
       `,
       attachments: [],
     });
