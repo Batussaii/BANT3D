@@ -15,9 +15,30 @@ const uploadDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
+const dashboardUploadDir = path.join(uploadDir, "dashboard");
+if (!fs.existsSync(dashboardUploadDir)) {
+  fs.mkdirSync(dashboardUploadDir, { recursive: true });
+}
+const dataDir = path.join(__dirname, "data");
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+}
+const dashboardDbPath = path.join(dataDir, "dashboard-db.json");
+const dashboardAuthUser = process.env.DASHBOARD_USER || "Bant3DAdmin";
+const dashboardAuthPass = process.env.DASHBOARD_PASS || "BertyBant3D";
 
 const upload = multer({
   dest: uploadDir,
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
+const dashboardImageUpload = multer({
+  storage: multer.diskStorage({
+    destination: dashboardUploadDir,
+    filename: (_req, file, cb) => {
+      const safeName = file.originalname.replace(/[^\w.-]/g, "_");
+      cb(null, `${Date.now()}-${safeName}`);
+    },
+  }),
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
@@ -341,6 +362,332 @@ app.post("/webhooks/stripe", express.raw({ type: "application/json" }), async (r
 });
 
 app.use(express.json());
+
+const buildDashboardSeed = () => ({
+  storageItems: [],
+  orders: [],
+  expenses: [],
+});
+
+const readDashboardDb = () => {
+  if (!fs.existsSync(dashboardDbPath)) {
+    fs.writeFileSync(dashboardDbPath, JSON.stringify(buildDashboardSeed(), null, 2), "utf8");
+  }
+  try {
+    const raw = fs.readFileSync(dashboardDbPath, "utf8");
+    const parsed = JSON.parse(raw);
+    return {
+      storageItems: Array.isArray(parsed?.storageItems) ? parsed.storageItems : [],
+      orders: Array.isArray(parsed?.orders) ? parsed.orders : [],
+      expenses: Array.isArray(parsed?.expenses) ? parsed.expenses : [],
+    };
+  } catch (_error) {
+    return buildDashboardSeed();
+  }
+};
+
+const writeDashboardDb = (data) => {
+  fs.writeFileSync(dashboardDbPath, JSON.stringify(data, null, 2), "utf8");
+};
+
+const buildId = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+const toMoney = (value) => Number((Number(value) || 0).toFixed(2));
+
+const normalizeOrderItems = (items, fallback = {}) => {
+  if (Array.isArray(items) && items.length) {
+    return items
+      .map((item) => {
+        const itemId = typeof item?.itemId === "string" ? item.itemId.trim() : "";
+        const title = typeof item?.title === "string" ? item.title.trim() : "";
+        const unitPrice = toMoney(item?.unitPrice);
+        const qty = Math.max(1, Math.floor(Number(item?.qty) || 0));
+        if (!title || unitPrice <= 0) return null;
+        return {
+          itemId: itemId || null,
+          title,
+          unitPrice,
+          qty,
+          lineTotal: toMoney(unitPrice * qty),
+        };
+      })
+      .filter(Boolean);
+  }
+
+  const fallbackTitle =
+    typeof fallback?.itemTitle === "string" ? fallback.itemTitle.trim() : "";
+  const fallbackUnitPrice = toMoney(fallback?.unitPrice);
+  if (fallbackTitle && fallbackUnitPrice > 0) {
+    return [
+      {
+        itemId: typeof fallback?.itemId === "string" ? fallback.itemId.trim() || null : null,
+        title: fallbackTitle,
+        unitPrice: fallbackUnitPrice,
+        qty: 1,
+        lineTotal: fallbackUnitPrice,
+      },
+    ];
+  }
+
+  return [];
+};
+
+const getOrderTotal = (order) => {
+  const items = normalizeOrderItems(order?.items, order);
+  return toMoney(items.reduce((sum, item) => sum + toMoney(item.lineTotal), 0));
+};
+
+const buildOrderTitle = (order) => {
+  const items = normalizeOrderItems(order?.items, order);
+  if (!items.length) return "Pedido";
+  return items.map((item) => `${item.qty} ${item.title}`).join(", ");
+};
+
+const dashboardAuth = (req, res, next) => {
+  const authHeader = req.headers.authorization || "";
+  if (!authHeader.startsWith("Basic ")) {
+    res.set("WWW-Authenticate", 'Basic realm="Bant3D Dashboard"');
+    res.status(401).send("Autorizacion requerida");
+    return;
+  }
+  const encoded = authHeader.split(" ")[1] || "";
+  let decoded = "";
+  try {
+    decoded = Buffer.from(encoded, "base64").toString("utf8");
+  } catch (_error) {
+    res.status(401).send("Credenciales invalidas");
+    return;
+  }
+  const separator = decoded.indexOf(":");
+  if (separator === -1) {
+    res.status(401).send("Credenciales invalidas");
+    return;
+  }
+  const user = decoded.slice(0, separator);
+  const pass = decoded.slice(separator + 1);
+  if (user !== dashboardAuthUser || pass !== dashboardAuthPass) {
+    res.set("WWW-Authenticate", 'Basic realm="Bant3D Dashboard"');
+    res.status(401).send("Credenciales invalidas");
+    return;
+  }
+  next();
+};
+
+const buildDashboardSummary = (data) => {
+  const incomeRows = data.orders
+    .filter((order) => Boolean(order?.status?.paid))
+    .map((order) => ({
+      id: order.id,
+      title: buildOrderTitle(order),
+      amount: getOrderTotal(order),
+      createdAt: order.updatedAt || order.createdAt,
+    }));
+  const totalIncome = incomeRows.reduce((sum, row) => sum + row.amount, 0);
+  const totalExpense = data.expenses.reduce((sum, row) => sum + toMoney(row.amount), 0);
+  return {
+    totals: {
+      income: toMoney(totalIncome),
+      expense: toMoney(totalExpense),
+      balance: toMoney(totalIncome - totalExpense),
+      paidOrders: incomeRows.length,
+      pendingOrders: data.orders.filter((order) => !order?.status?.paid).length,
+    },
+    incomeRows,
+    expenses: data.expenses,
+  };
+};
+
+app.get("/BANTDASHBOARD", dashboardAuth, (_req, res) => {
+  res.sendFile(path.join(__dirname, "dashboard.html"));
+});
+
+app.get("/api/dashboard/bootstrap", dashboardAuth, (_req, res) => {
+  const data = readDashboardDb();
+  const summary = buildDashboardSummary(data);
+  res.json({
+    storageItems: data.storageItems,
+    orders: data.orders,
+    expenses: data.expenses,
+    summary,
+  });
+});
+
+app.get("/api/dashboard/summary", dashboardAuth, (_req, res) => {
+  const data = readDashboardDb();
+  res.json(buildDashboardSummary(data));
+});
+
+app.post("/api/dashboard/storage", dashboardAuth, dashboardImageUpload.single("image"), (req, res) => {
+  const title = typeof req.body?.title === "string" ? req.body.title.trim() : "";
+  const description =
+    typeof req.body?.description === "string" ? req.body.description.trim() : "";
+  const price = toMoney(req.body?.price);
+  if (!title || price <= 0) {
+    res.status(400).json({ error: "Titulo y precio validos son obligatorios." });
+    return;
+  }
+
+  const data = readDashboardDb();
+  const item = {
+    id: buildId("item"),
+    title,
+    description,
+    price,
+    imageUrl: req.file ? `/uploads/dashboard/${req.file.filename}` : "",
+    createdAt: new Date().toISOString(),
+  };
+  data.storageItems.unshift(item);
+  writeDashboardDb(data);
+  res.status(201).json(item);
+});
+
+app.patch("/api/dashboard/storage/:id", dashboardAuth, dashboardImageUpload.single("image"), (req, res) => {
+  const data = readDashboardDb();
+  const item = data.storageItems.find((row) => row.id === req.params.id);
+  if (!item) {
+    res.status(404).json({ error: "Articulo no encontrado." });
+    return;
+  }
+  const maybeTitle = typeof req.body?.title === "string" ? req.body.title.trim() : "";
+  const maybeDescription =
+    typeof req.body?.description === "string" ? req.body.description.trim() : "";
+  const maybePrice = req.body?.price !== undefined ? toMoney(req.body.price) : null;
+  if (maybeTitle) item.title = maybeTitle;
+  if (req.body?.description !== undefined) item.description = maybeDescription;
+  if (maybePrice !== null && maybePrice > 0) item.price = maybePrice;
+  if (req.file) {
+    item.imageUrl = `/uploads/dashboard/${req.file.filename}`;
+  }
+  item.updatedAt = new Date().toISOString();
+  writeDashboardDb(data);
+  res.json(item);
+});
+
+app.delete("/api/dashboard/storage/:id", dashboardAuth, (req, res) => {
+  const data = readDashboardDb();
+  const before = data.storageItems.length;
+  data.storageItems = data.storageItems.filter((row) => row.id !== req.params.id);
+  if (before === data.storageItems.length) {
+    res.status(404).json({ error: "Articulo no encontrado." });
+    return;
+  }
+  writeDashboardDb(data);
+  res.json({ ok: true });
+});
+
+app.post("/api/dashboard/orders", dashboardAuth, (req, res) => {
+  const items = normalizeOrderItems(req.body?.items, req.body || {});
+  if (!items.length) {
+    res.status(400).json({ error: "Debes añadir al menos un articulo valido al pedido." });
+    return;
+  }
+  const data = readDashboardDb();
+  const total = toMoney(items.reduce((sum, item) => sum + item.lineTotal, 0));
+  const order = {
+    id: buildId("order"),
+    items,
+    itemId: items[0]?.itemId || null,
+    itemTitle: buildOrderTitle({ items }),
+    unitPrice: total,
+    total,
+    status: {
+      done: Boolean(req.body?.status?.done),
+      sent: Boolean(req.body?.status?.sent),
+      paid: Boolean(req.body?.status?.paid),
+    },
+    notes: typeof req.body?.notes === "string" ? req.body.notes.trim() : "",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  data.orders.unshift(order);
+  writeDashboardDb(data);
+  res.status(201).json(order);
+});
+
+app.patch("/api/dashboard/orders/:id", dashboardAuth, (req, res) => {
+  const data = readDashboardDb();
+  const order = data.orders.find((row) => row.id === req.params.id);
+  if (!order) {
+    res.status(404).json({ error: "Pedido no encontrado." });
+    return;
+  }
+  if (typeof req.body?.itemTitle === "string" && req.body.itemTitle.trim()) {
+    order.itemTitle = req.body.itemTitle.trim();
+  }
+  if (req.body?.unitPrice !== undefined) {
+    const maybeUnitPrice = toMoney(req.body.unitPrice);
+    if (maybeUnitPrice > 0) {
+      order.unitPrice = maybeUnitPrice;
+    }
+  }
+  if (Array.isArray(req.body?.items)) {
+    const normalizedItems = normalizeOrderItems(req.body.items, order);
+    if (normalizedItems.length) {
+      order.items = normalizedItems;
+      const total = toMoney(normalizedItems.reduce((sum, item) => sum + item.lineTotal, 0));
+      order.total = total;
+      order.unitPrice = total;
+      order.itemId = normalizedItems[0]?.itemId || null;
+      order.itemTitle = buildOrderTitle({ items: normalizedItems });
+    }
+  }
+  if (req.body?.status && typeof req.body.status === "object") {
+    order.status = {
+      done: Boolean(req.body.status.done),
+      sent: Boolean(req.body.status.sent),
+      paid: Boolean(req.body.status.paid),
+    };
+  }
+  if (req.body?.notes !== undefined) {
+    order.notes = typeof req.body.notes === "string" ? req.body.notes.trim() : "";
+  }
+  order.updatedAt = new Date().toISOString();
+  writeDashboardDb(data);
+  res.json(order);
+});
+
+app.delete("/api/dashboard/orders/:id", dashboardAuth, (req, res) => {
+  const data = readDashboardDb();
+  const before = data.orders.length;
+  data.orders = data.orders.filter((row) => row.id !== req.params.id);
+  if (before === data.orders.length) {
+    res.status(404).json({ error: "Pedido no encontrado." });
+    return;
+  }
+  writeDashboardDb(data);
+  res.json({ ok: true });
+});
+
+app.post("/api/dashboard/expenses", dashboardAuth, (req, res) => {
+  const title = typeof req.body?.title === "string" ? req.body.title.trim() : "";
+  const amount = toMoney(req.body?.amount);
+  if (!title || amount <= 0) {
+    res.status(400).json({ error: "Titulo y precio validos son obligatorios." });
+    return;
+  }
+  const data = readDashboardDb();
+  const expense = {
+    id: buildId("expense"),
+    title,
+    amount,
+    createdAt: new Date().toISOString(),
+  };
+  data.expenses.unshift(expense);
+  writeDashboardDb(data);
+  res.status(201).json(expense);
+});
+
+app.delete("/api/dashboard/expenses/:id", dashboardAuth, (req, res) => {
+  const data = readDashboardDb();
+  const before = data.expenses.length;
+  data.expenses = data.expenses.filter((row) => row.id !== req.params.id);
+  if (before === data.expenses.length) {
+    res.status(404).json({ error: "Gasto no encontrado." });
+    return;
+  }
+  writeDashboardDb(data);
+  res.json({ ok: true });
+});
 
 const sendMail = async ({ to, subject, text, html, attachments }) => {
   const transporter = buildTransporter();

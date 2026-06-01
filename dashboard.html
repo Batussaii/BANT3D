@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bant3D Dashboard</title>
+    <link rel="stylesheet" href="/dashboard.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>Bant3D Dashboard</h1>
+      <button id="refreshBtn" type="button">Actualizar</button>
+    </header>
+
+    <nav class="tabs" aria-label="Secciones dashboard">
+      <button class="tab active" data-tab="resumen">Resumen</button>
+      <button class="tab" data-tab="storage">Storage</button>
+      <button class="tab" data-tab="pedidos">Pedidos</button>
+      <button class="tab" data-tab="movimientos">Gastos e Ingresos</button>
+    </nav>
+
+    <main>
+      <section class="panel active" id="tab-resumen">
+        <div class="cards-grid">
+          <article class="card card-income">
+            <h2>Total ingresos</h2>
+            <p id="totalIncome">0,00 EUR</p>
+          </article>
+          <article class="card card-expense">
+            <h2>Total gastos</h2>
+            <p id="totalExpense">0,00 EUR</p>
+          </article>
+          <article class="card card-balance">
+            <h2>Balance</h2>
+            <p id="totalBalance">0,00 EUR</p>
+          </article>
+          <article class="card">
+            <h2>Pedidos cobrados</h2>
+            <p id="paidOrders">0</p>
+          </article>
+        </div>
+        <div class="chart-card">
+          <h2>Comparativa ingresos vs gastos</h2>
+          <canvas id="resumeChart" height="120"></canvas>
+        </div>
+      </section>
+
+      <section class="panel" id="tab-storage">
+        <h2>Nuevo articulo</h2>
+        <form id="storageForm" class="form-grid">
+          <input name="title" placeholder="Titulo" required />
+          <input name="price" type="number" step="0.01" min="0" placeholder="Precio" required />
+          <textarea name="description" placeholder="Descripcion"></textarea>
+          <input name="image" type="file" accept="image/*" />
+          <button type="submit">Guardar articulo</button>
+        </form>
+        <div id="storageList" class="storage-grid"></div>
+      </section>
+
+      <section class="panel" id="tab-pedidos">
+        <h2>Nuevo pedido</h2>
+        <form id="orderForm" class="form-grid">
+          <div class="line-builder">
+            <select name="itemId" id="orderItemSelect">
+              <option value="">Selecciona articulo de Storage</option>
+            </select>
+            <input
+              name="unitPrice"
+              id="orderPrice"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="Precio unidad"
+            />
+            <input
+              name="qty"
+              id="orderQty"
+              type="number"
+              min="1"
+              step="1"
+              value="1"
+              placeholder="Cantidad"
+            />
+            <button type="button" id="addOrderLineBtn">Añadir articulo</button>
+          </div>
+          <div id="pendingOrderItems" class="table-wrap"></div>
+          <textarea name="notes" placeholder="Notas del pedido"></textarea>
+          <div class="checks">
+            <label><input type="checkbox" name="done" /> Hecho</label>
+            <label><input type="checkbox" name="sent" /> Enviado</label>
+            <label><input type="checkbox" name="paid" /> Cobrado</label>
+          </div>
+          <button type="submit">Guardar pedido</button>
+        </form>
+        <div id="ordersList" class="table-wrap"></div>
+      </section>
+
+      <section class="panel" id="tab-movimientos">
+        <div class="split">
+          <div>
+            <h2>Ingresos automáticos (solo cobrados)</h2>
+            <div id="incomeRows" class="table-wrap"></div>
+          </div>
+          <div>
+            <h2>Nuevo gasto</h2>
+            <form id="expenseForm" class="form-grid">
+              <input name="title" placeholder="Titulo gasto" required />
+              <input name="amount" type="number" step="0.01" min="0" placeholder="Precio" required />
+              <button type="submit">Guardar gasto</button>
+            </form>
+            <div id="expensesList" class="table-wrap"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="/dashboard.js"></script>
+  </body>
+</html>
