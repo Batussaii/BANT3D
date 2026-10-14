@@ -73,6 +73,48 @@ const api = async (path, options = {}) => {
   return response.json();
 };
 
+const downloadBackup = async () => {
+  const response = await fetch("/api/dashboard/backup", {
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || "No se pudo descargar el backup.");
+  }
+  const blob = await response.blob();
+  const disposition = response.headers.get("content-disposition") || "";
+  const match = disposition.match(/filename="([^"]+)"/i);
+  const filename = match?.[1] || "bant3d-dashboard-backup.json";
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
+
+const uploadBackupFile = async (file) => {
+  const formData = new FormData();
+  formData.append("backupFile", file);
+  const response = await fetch("/api/dashboard/backup/import", {
+    method: "POST",
+    body: formData,
+  });
+  let payload = null;
+  try {
+    payload = await response.json();
+  } catch (_error) {
+    payload = null;
+  }
+  if (!response.ok) {
+    throw new Error(payload?.error || "No se pudo cargar el backup.");
+  }
+  return payload;
+};
+
 const renderStorageSelect = () => {
   const select = $("#orderItemSelect");
   select.innerHTML = '<option value="">Selecciona articulo de Storage</option>';
@@ -481,6 +523,36 @@ const bootstrap = async () => {
   wireForms();
   wireListActions();
   $("#refreshBtn").addEventListener("click", () => loadData());
+  $("#downloadBackupBtn").addEventListener("click", async () => {
+    try {
+      await downloadBackup();
+    } catch (error) {
+      alert(error.message);
+    }
+  });
+  $("#uploadBackupBtn").addEventListener("click", () => {
+    $("#backupFileInput").click();
+  });
+  $("#backupFileInput").addEventListener("change", async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const confirmed = confirm(
+      "Vas a sobrescribir todos los datos actuales (storage, pedidos y gastos). ¿Continuar?"
+    );
+    if (!confirmed) {
+      event.target.value = "";
+      return;
+    }
+    try {
+      const result = await uploadBackupFile(file);
+      alert(result?.message || "Backup cargado correctamente.");
+      await loadData();
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      event.target.value = "";
+    }
+  });
   await loadData();
 };
 

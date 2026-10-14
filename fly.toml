@@ -8,6 +8,10 @@ primary_region = 'cdg'
 
 [build]
 
+[env]
+  DASHBOARD_DATA_DIR = "/data/dashboard"
+  DASHBOARD_UPLOAD_DIR = "/data/uploads"
+
 [http_service]
   internal_port = 8080
   force_https = true
@@ -20,3 +24,7 @@ primary_region = 'cdg'
   memory = '1gb'
   cpu_kind = 'shared'
   cpus = 1
+
+[[mounts]]
+  source = "bant3d_data"
+  destination = "/data"

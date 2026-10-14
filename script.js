@@ -60,6 +60,7 @@ const REQUEST_ENDPOINT = "/api/request";
 const COLOR_ENDPOINT = "/api/color-request";
 const STRIPE_ENDPOINT = "/api/checkout/stripe";
 const PAYPAL_ENDPOINT = "/api/checkout/paypal";
+const STORE_PRODUCTS_ENDPOINT = "/api/store/products";
 const PAYPAL_DISABLED = true;
 const COLOR_NAME_MAP = {
   blanco: "#ffffff",
@@ -346,11 +347,106 @@ initHeroPromo();
 loadSliderImages();
 
 if (storeProducts) {
-  const products = Array.from(storeProducts.querySelectorAll("[data-product]"));
+  let products = Array.from(storeProducts.querySelectorAll("[data-product]"));
   const cart = [];
   let activeCategory = "all";
   const ACTIVE_COUPON = { code: "ABRILSANTO20", percent: 0.2 };
   let appliedCoupon = null;
+
+  const formatStoreCardPrice = (value) => {
+    const amount = Number(value || 0);
+    if (!Number.isFinite(amount)) return "0€";
+    if (Number.isInteger(amount)) return `${amount}€`;
+    return `${amount.toFixed(2).replace(/\.00$/, "").replace(".", ",")}€`;
+  };
+
+  const createStorageProductCard = (product) => {
+    const card = document.createElement("article");
+    card.className = "store-product";
+    card.dataset.product = "";
+    card.dataset.dashboardProduct = "true";
+    card.dataset.active = "true";
+    card.dataset.id = product.id;
+    card.dataset.name = product.title;
+    card.dataset.price = String(product.price);
+    card.dataset.category = "storage";
+    card.dataset.custom = "false";
+    card.dataset.imageUrl = product.imageUrl || "";
+
+    const imageBox = document.createElement("div");
+    imageBox.className = "store-image";
+    const image = document.createElement("img");
+    image.className = "store-thumb";
+    image.dataset.storeImage = "";
+    image.alt = product.title;
+    const imageFallback = document.createElement("span");
+    imageFallback.textContent = "Producto";
+    imageBox.append(image, imageFallback);
+
+    const info = document.createElement("div");
+    info.className = "store-info";
+    const title = document.createElement("h3");
+    title.textContent = product.title;
+    const description = document.createElement("p");
+    description.textContent = product.description || "Artículo disponible en Bant3D.";
+    const price = document.createElement("span");
+    price.className = "price";
+    price.textContent = formatStoreCardPrice(product.price);
+    const addButton = document.createElement("button");
+    addButton.className = "btn btn-light add-to-cart";
+    addButton.type = "button";
+    addButton.textContent = "Añadir";
+    info.append(title, description, price, addButton);
+    card.append(imageBox, info);
+    return card;
+  };
+
+  const loadStorageProducts = async () => {
+    const response = await fetch(STORE_PRODUCTS_ENDPOINT, {
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      throw new Error("No se pudo cargar el catálogo de Storage.");
+    }
+    const data = await response.json();
+    const storageProducts = Array.isArray(data?.products) ? data.products : [];
+    storeProducts
+      .querySelectorAll("[data-dashboard-product]")
+      .forEach((card) => card.remove());
+
+    const fragment = document.createDocumentFragment();
+    storageProducts.forEach((product) => {
+      fragment.appendChild(createStorageProductCard(product));
+    });
+    const firstStaticProduct = storeProducts.querySelector("[data-product]");
+    storeProducts.insertBefore(fragment, firstStaticProduct);
+
+    products = Array.from(storeProducts.querySelectorAll("[data-product]"));
+    const dynamicCards = products.filter(
+      (card) => card.dataset.dashboardProduct === "true"
+    );
+    setProductImages(dynamicCards);
+    dynamicCards.forEach((card) => {
+      const info = card.querySelector(".store-info");
+      if (!info || info.querySelector(".shipping-tag")) return;
+      const tag = document.createElement("p");
+      tag.className = "shipping-tag";
+      tag.textContent = "Envío gratis desde 30€";
+      info.appendChild(tag);
+    });
+    syncVisiblePricesWithDataset();
+    applyFilters();
+  };
+
+  const syncVisiblePricesWithDataset = () => {
+    products.forEach((card) => {
+      const visiblePrice = card.querySelector(".price");
+      if (!(visiblePrice instanceof HTMLElement)) return;
+      const currentPrice = Number(card.dataset.price || 0);
+      visiblePrice.textContent = formatStoreCardPrice(currentPrice);
+    });
+  };
 
   const normalizeCoupon = (value) => value.trim().toUpperCase();
 
@@ -488,13 +584,12 @@ if (storeProducts) {
     renderCart();
   };
 
-  const setProductImages = () => {
-    products.forEach((card) => {
+  const setProductImages = (cards = products) => {
+    cards.forEach((card) => {
       const id = card.dataset.id;
       const name = card.dataset.name || "Producto";
       const image = card.querySelector("[data-store-image]");
       if (!id || !(image instanceof HTMLImageElement)) return;
-      image.src = `assets/StoreImages/${id}.png`;
       image.alt = name;
       image.addEventListener("load", () => {
         image.parentElement?.classList.add("has-image");
@@ -502,6 +597,7 @@ if (storeProducts) {
       image.addEventListener("error", () => {
         image.parentElement?.classList.remove("has-image");
       });
+      image.src = card.dataset.imageUrl || `assets/StoreImages/${id}.png`;
     });
   };
 
@@ -728,7 +824,7 @@ if (storeProducts) {
 
   const matchesPrice = (price, range) => {
     if (range === "all") return true;
-    if (range === "100+") return price >= 100;
+    if (range.endsWith("+")) return price >= Number(range.slice(0, -1));
     const [min, max] = range.split("-").map((value) => Number(value));
     return price >= min && price <= max;
   };
@@ -761,7 +857,11 @@ if (storeProducts) {
       if (!card || !imageModalImg) return;
       const id = card.dataset.id;
       if (!id) return;
-      loadGalleryImages(id).then((images) => {
+      const imageUrl = card.dataset.imageUrl;
+      const imagePromise = imageUrl
+        ? Promise.resolve([imageUrl])
+        : loadGalleryImages(id);
+      imagePromise.then((images) => {
         imageModal.dataset.images = JSON.stringify(images);
         imageModal.dataset.index = "0";
         imageModalImg.src = images[0];
@@ -831,9 +931,13 @@ if (storeProducts) {
 
   products.forEach(renderDropdownOptions);
   products.forEach(renderColorOptions);
+  syncVisiblePricesWithDataset();
   applyFilters();
   renderCart();
   setProductImages();
+  loadStorageProducts().catch((error) => {
+    console.error(error);
+  });
   if (checkoutCountry && internationalNote) {
     internationalNote.classList.toggle("is-visible", checkoutCountry.value !== "ES");
   }

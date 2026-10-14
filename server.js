@@ -11,7 +11,12 @@ require("dotenv").config();
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-const uploadDir = path.join(__dirname, "uploads");
+const dashboardDataDir = process.env.DASHBOARD_DATA_DIR
+  ? path.resolve(process.env.DASHBOARD_DATA_DIR)
+  : path.join(__dirname, "data");
+const uploadDir = process.env.DASHBOARD_UPLOAD_DIR
+  ? path.resolve(process.env.DASHBOARD_UPLOAD_DIR)
+  : path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
@@ -19,11 +24,10 @@ const dashboardUploadDir = path.join(uploadDir, "dashboard");
 if (!fs.existsSync(dashboardUploadDir)) {
   fs.mkdirSync(dashboardUploadDir, { recursive: true });
 }
-const dataDir = path.join(__dirname, "data");
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+if (!fs.existsSync(dashboardDataDir)) {
+  fs.mkdirSync(dashboardDataDir, { recursive: true });
 }
-const dashboardDbPath = path.join(dataDir, "dashboard-db.json");
+const dashboardDbPath = path.join(dashboardDataDir, "dashboard-db.json");
 const dashboardAuthUser = process.env.DASHBOARD_USER || "Bant3DAdmin";
 const dashboardAuthPass = process.env.DASHBOARD_PASS || "BertyBant3D";
 
@@ -41,8 +45,13 @@ const dashboardImageUpload = multer({
   }),
   limits: { fileSize: 10 * 1024 * 1024 },
 });
+const dashboardBackupUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 },
+});
 
 app.use(express.static(path.join(__dirname)));
+app.use("/uploads", express.static(uploadDir));
 
 const buildTransporter = () => {
   const {
@@ -369,6 +378,47 @@ const buildDashboardSeed = () => ({
   expenses: [],
 });
 
+const isDashboardDataValid = (data) =>
+  Boolean(
+    data &&
+      Array.isArray(data.storageItems) &&
+      Array.isArray(data.orders) &&
+      Array.isArray(data.expenses)
+  );
+
+const getStorageImageNames = (storageItems = []) =>
+  storageItems
+    .map((item) =>
+      typeof item?.imageUrl === "string" && item.imageUrl.startsWith("/uploads/dashboard/")
+        ? path.basename(item.imageUrl)
+        : ""
+    )
+    .filter(Boolean);
+
+const collectDashboardImagesForBackup = (storageItems = []) => {
+  const imageNames = [...new Set(getStorageImageNames(storageItems))];
+  const images = {};
+  imageNames.forEach((fileName) => {
+    const absolutePath = path.join(dashboardUploadDir, fileName);
+    if (!fs.existsSync(absolutePath)) return;
+    images[fileName] = fs.readFileSync(absolutePath, "base64");
+  });
+  return images;
+};
+
+const restoreDashboardImagesFromBackup = (images = {}) => {
+  if (!images || typeof images !== "object") return;
+  if (!fs.existsSync(dashboardUploadDir)) {
+    fs.mkdirSync(dashboardUploadDir, { recursive: true });
+  }
+  Object.entries(images).forEach(([fileName, base64]) => {
+    if (typeof fileName !== "string" || typeof base64 !== "string") return;
+    const safeFileName = path.basename(fileName);
+    const outputPath = path.join(dashboardUploadDir, safeFileName);
+    fs.writeFileSync(outputPath, Buffer.from(base64, "base64"));
+  });
+};
+
 const readDashboardDb = () => {
   if (!fs.existsSync(dashboardDbPath)) {
     fs.writeFileSync(dashboardDbPath, JSON.stringify(buildDashboardSeed(), null, 2), "utf8");
@@ -501,6 +551,27 @@ app.get("/BANTDASHBOARD", dashboardAuth, (_req, res) => {
   res.sendFile(path.join(__dirname, "dashboard.html"));
 });
 
+app.get("/api/store/products", (_req, res) => {
+  const data = readDashboardDb();
+  const products = data.storageItems
+    .map((item) => ({
+      id: typeof item?.id === "string" ? item.id : "",
+      title: typeof item?.title === "string" ? item.title.trim() : "",
+      description:
+        typeof item?.description === "string" ? item.description.trim() : "",
+      price: toMoney(item?.price),
+      imageUrl:
+        typeof item?.imageUrl === "string" &&
+        item.imageUrl.startsWith("/uploads/dashboard/")
+          ? item.imageUrl
+          : "",
+    }))
+    .filter((item) => item.id && item.title && item.price > 0);
+
+  res.set("Cache-Control", "no-store");
+  res.json({ products });
+});
+
 app.get("/api/dashboard/bootstrap", dashboardAuth, (_req, res) => {
   const data = readDashboardDb();
   const summary = buildDashboardSummary(data);
@@ -516,6 +587,66 @@ app.get("/api/dashboard/summary", dashboardAuth, (_req, res) => {
   const data = readDashboardDb();
   res.json(buildDashboardSummary(data));
 });
+
+app.get("/api/dashboard/backup", dashboardAuth, (_req, res) => {
+  const data = readDashboardDb();
+  const backupPayload = {
+    version: 1,
+    createdAt: new Date().toISOString(),
+    app: "bant3d-dashboard",
+    data,
+    images: collectDashboardImagesForBackup(data.storageItems),
+  };
+  const fileName = `bant3d-dashboard-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+  res.send(JSON.stringify(backupPayload, null, 2));
+});
+
+app.post(
+  "/api/dashboard/backup/import",
+  dashboardAuth,
+  dashboardBackupUpload.single("backupFile"),
+  (req, res) => {
+    if (!req.file?.buffer) {
+      res.status(400).json({ error: "Debes seleccionar un archivo de backup JSON." });
+      return;
+    }
+    let parsed = null;
+    try {
+      parsed = JSON.parse(req.file.buffer.toString("utf8"));
+    } catch (_error) {
+      res.status(400).json({ error: "El archivo no es un JSON válido." });
+      return;
+    }
+
+    const restoredData = parsed?.data || parsed;
+    if (!isDashboardDataValid(restoredData)) {
+      res.status(400).json({
+        error: "El backup no tiene el formato esperado (storageItems, orders y expenses).",
+      });
+      return;
+    }
+
+    const normalizedData = {
+      storageItems: restoredData.storageItems,
+      orders: restoredData.orders,
+      expenses: restoredData.expenses,
+    };
+    writeDashboardDb(normalizedData);
+    restoreDashboardImagesFromBackup(parsed?.images);
+
+    res.json({
+      ok: true,
+      message: "Backup cargado correctamente.",
+      totals: {
+        storageItems: normalizedData.storageItems.length,
+        orders: normalizedData.orders.length,
+        expenses: normalizedData.expenses.length,
+      },
+    });
+  }
+);
 
 app.post("/api/dashboard/storage", dashboardAuth, dashboardImageUpload.single("image"), (req, res) => {
   const title = typeof req.body?.title === "string" ? req.body.title.trim() : "";

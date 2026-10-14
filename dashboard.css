@@ -23,6 +23,13 @@ body {
   font-size: 1.2rem;
 }
 
+.topbar-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .topbar button {
   border: 0;
   border-radius: 8px;
@@ -242,6 +249,15 @@ td {
 }
 
 @media (max-width: 640px) {
+  .topbar {
+    gap: 10px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .topbar-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
   .topbar h1 {
     font-size: 1rem;
   }
