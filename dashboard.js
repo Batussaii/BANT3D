@@ -185,6 +185,14 @@ const renderStorage = () => {
         <p>${item.description || "-"}</p>
         <strong>${moneyFmt.format(item.price)}</strong>
         <div>
+          <label class="storage-visibility">
+            <input
+              type="checkbox"
+              data-storage-hidden="${item.id}"
+              ${item.hidden ? "checked" : ""}
+            />
+            Ocultar en tienda
+          </label>
           <button class="danger" data-remove-storage="${item.id}" type="button">Eliminar</button>
         </div>
       </div>
@@ -495,6 +503,22 @@ const wireListActions = () => {
   });
 
   document.body.addEventListener("change", async (event) => {
+    const storageHiddenId = event.target.dataset.storageHidden;
+    if (storageHiddenId) {
+      try {
+        await api(`/api/dashboard/storage/${storageHiddenId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ hidden: event.target.checked }),
+        });
+        await loadData();
+      } catch (error) {
+        event.target.checked = !event.target.checked;
+        alert(error.message);
+      }
+      return;
+    }
+
     const orderId = event.target.dataset.status;
     const key = event.target.dataset.key;
     if (!orderId || !key) return;

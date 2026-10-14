@@ -189,6 +189,22 @@ button[type="submit"] {
   margin: 0 0 6px;
 }
 
+.storage-visibility {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 10px 0 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.storage-visibility input {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+}
+
 .checks {
   display: flex;
   flex-wrap: wrap;

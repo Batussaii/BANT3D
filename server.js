@@ -554,6 +554,7 @@ app.get("/BANTDASHBOARD", dashboardAuth, (_req, res) => {
 app.get("/api/store/products", (_req, res) => {
   const data = readDashboardDb();
   const products = data.storageItems
+    .filter((item) => !item?.hidden)
     .map((item) => ({
       id: typeof item?.id === "string" ? item.id : "",
       title: typeof item?.title === "string" ? item.title.trim() : "",
@@ -664,6 +665,7 @@ app.post("/api/dashboard/storage", dashboardAuth, dashboardImageUpload.single("i
     title,
     description,
     price,
+    hidden: false,
     imageUrl: req.file ? `/uploads/dashboard/${req.file.filename}` : "",
     createdAt: new Date().toISOString(),
   };
@@ -686,6 +688,9 @@ app.patch("/api/dashboard/storage/:id", dashboardAuth, dashboardImageUpload.sing
   if (maybeTitle) item.title = maybeTitle;
   if (req.body?.description !== undefined) item.description = maybeDescription;
   if (maybePrice !== null && maybePrice > 0) item.price = maybePrice;
+  if (req.body?.hidden !== undefined) {
+    item.hidden = req.body.hidden === true || req.body.hidden === "true";
+  }
   if (req.file) {
     item.imageUrl = `/uploads/dashboard/${req.file.filename}`;
   }
